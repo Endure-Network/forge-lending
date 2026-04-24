@@ -1,0 +1,9 @@
+No files changed, compilation skipped
+
+Ran 3 tests for test/endure/integration/Liquidation.t.sol:LiquidationTest
+[PASS] test_Integration_LiquidationOnPriceDrop() (gas: 505596)
+[PASS] test_Negative_LiquidationHealthyReverts() (gas: 384486)
+[PASS] test_Negative_ZeroPriceOracleReverts() (gas: 2547800)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 2.91ms (1.30ms CPU time)
+
+Ran 1 test suite in 129.59ms (2.91ms CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)
