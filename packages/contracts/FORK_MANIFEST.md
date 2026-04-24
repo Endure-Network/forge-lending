@@ -58,6 +58,59 @@ Explicit list:
 - `router/WETHRouter.sol`, `router/IWETH.sol`
 - `Recovery.sol`, `OEVProtocolFeeRedeemer.sol`
 - `4626/` (except deleted MoonwellERC4626.sol), `cypher/`, `market/`, `views/MoonwellViewsV1*.sol`
-- `rewards/MultiRewardDistributor.sol`, `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — kept byte-identical (required by `ComptrollerStorage.sol` storage layout)
+- `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — kept byte-identical (required by `ComptrollerStorage.sol` storage layout)
+- `rewards/MultiRewardDistributor.sol` — kept with documented import-path deviation; see section 5.1 below
 
 ## 5. Unresolved Deviations
+
+### 5.1 `src/rewards/MultiRewardDistributor.sol` — five import paths rewritten
+
+**Status**: Documented deviation (not byte-identical to upstream).
+
+**Change**: Five import statements rewritten from `@protocol/*` to relative (`../*`) paths:
+
+```diff
+-import {MToken} from "@protocol/MToken.sol";
+-import {Comptroller} from "@protocol/Comptroller.sol";
+-import {MTokenInterface} from "@protocol/MTokenInterfaces.sol";
+-import {ExponentialNoError} from "@protocol/ExponentialNoError.sol";
+-import {MultiRewardDistributorCommon} from "@protocol/rewards/MultiRewardDistributorCommon.sol";
++import {MToken} from "../MToken.sol";
++import {Comptroller} from "../Comptroller.sol";
++import {MTokenInterface} from "../MTokenInterfaces.sol";
++import {ExponentialNoError} from "../ExponentialNoError.sol";
++import {MultiRewardDistributorCommon} from "./MultiRewardDistributorCommon.sol";
+```
+
+**Why**: The `packages/deploy/` forge package consumes the contracts source through
+`allow_paths = ["../contracts"]` and its own remappings. When this file uses
+`@protocol/*` imports (upstream style), Solidity resolves the same transitive
+contracts (`MToken`, `MTokenInterfaces`, `ExponentialNoError`) through two
+paths — once via `./rewards/...` from `ComptrollerStorage.sol` and once via
+`@protocol/...` from this file — producing `Identifier already declared (2333)`
+errors in the deploy package's compilation context.
+
+The contracts package itself compiles cleanly with `@protocol/*` imports
+(only one remapping active). The deploy package cannot, without deeper
+remapping gymnastics that would break other `@protocol/*` consumers.
+
+**Semantic equivalence**: The rewritten imports point to the same files via
+different paths. No logic, types, or bytecode difference. `forge test` green
+in both compilation contexts. We verified against upstream commit 8d5fb11 that
+the remaining 1,244 lines of the file are byte-identical.
+
+**Restoration path**: Any future refactor that unifies remapping resolution
+across packages (e.g., a single top-level `remappings.txt` that both packages
+consume via a shared `allow_paths`, or publishing contracts as a git
+submodule) would let us restore byte-identical imports. Not pursued in
+Phase 0 because the cost/benefit is wrong: we'd touch the build system to fix
+a five-line cosmetic issue in a file we never deploy.
+
+**Runtime impact**: None. `MultiRewardDistributor` is not deployed by
+`DeployLocal.s.sol`. The file exists only because `ComptrollerStorage.sol`
+imports it for storage layout, and `ComptrollerStorage` is kept as a Stance B
+exception. Reward distribution is out of scope for Phase 0.
+
+**Upstream backport policy**: If upstream Moonwell ships a security fix to
+this file, re-apply the five import rewrites after backporting. The diff is
+minimal and mechanical. Checked: `git show upstream/main -- src/rewards/MultiRewardDistributor.sol`.
