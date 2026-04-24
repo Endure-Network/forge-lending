@@ -46,3 +46,9 @@
 - `MErc20Delegator` admin must be passed explicitly from the intended admin role; using `msg.sender` inside a helper is unsafe because constructor/delegator admin expectations can diverge from the prank/original caller context.
 - Guardian successor behavior is mixed upstream: `_setPauseGuardian` returns a non-zero error code on unauthorized access, while `_setBorrowCapGuardian` and `_setSupplyCapGuardian` revert.
 - A dual-mode deployment helper works cleanly when `_deploy()` uses a synthesized all-equal `RoleSet` and `_deployAs()` wraps the entire deployment/setup sequence in one `vm.startPrank(roles.admin)` block.
+
+## [2026-04-24] Task 20 local deploy script
+
+- `packages/deploy/foundry.toml` needed `allow_paths = ["../contracts"]` in addition to fs permissions so Forge could compile sibling-package imports from `packages/contracts/**`.
+- For current Foundry, the reliable local broadcast invocation was `forge script src/DeployLocal.s.sol:DeployLocal --rpc-url http://localhost:8545 --broadcast --private-key <anvil-key>` from `packages/deploy/`; omitting the contract target or wallet caused CLI/runtime failures.
+- Writing `broadcast/addresses.json` via `vm.writeFile` with explicit JSON text was stable; the initial nested `stdJson` approach produced an incomplete artifact under this toolchain.
