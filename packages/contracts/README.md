@@ -116,9 +116,28 @@ To update after intentional gas changes: `forge snapshot --root packages/contrac
 
 - Deploy script is **not idempotent** — requires fresh Anvil per run
 - No real Chainlink oracle wiring (ChainlinkOracle.sol kept as reference only)
-- No native TAO wrap semantics (WTAO is a plain ERC20 mock)
+- No native TAO wrap semantics — `WTAO` is a plain ERC20 mock; use `mint(address,uint256)` directly, there is no `deposit()/withdraw()`
 - No Timelock or GovernorBravo (Phase 4)
 - No Gnosis Safe or multisig (Phase 1/2)
+
+## Live E2E Validation
+
+After deploying to Anvil, validate the full supply → borrow → repay lifecycle against the live chain:
+
+```bash
+# terminal 1
+anvil
+
+# terminal 2
+cd packages/deploy
+forge script src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast \
+  --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+
+cd ../..
+./scripts/e2e-smoke.sh
+```
+
+The script exercises every user-facing primitive (mint, approve, supply, enterMarkets, borrow, repay) and fails loudly on Moonwell soft-failure events (`Failure(error,info,detail)`). Exit 0 = protocol is functional end-to-end.
 
 ## Implementation Notes
 
