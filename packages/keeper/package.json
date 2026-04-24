@@ -1,0 +1,8 @@
+{
+  "name": "@endure/keeper",
+  "private": true,
+  "scripts": {
+    "test": "echo 'keeper stub' && exit 0",
+    "start": "echo 'keeper stub: Phase 4'"
+  }
+}

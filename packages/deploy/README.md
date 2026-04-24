@@ -1,0 +1,1 @@
+DeployLocal.s.sol atomically deploys Endure Phase 0 to local Anvil (chainId 31337). Run: `forge script src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast`. Requires anvil running. NOT idempotent — fresh Anvil per run.

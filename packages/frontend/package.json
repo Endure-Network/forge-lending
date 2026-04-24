@@ -1,0 +1,8 @@
+{
+  "name": "@endure/frontend",
+  "private": true,
+  "scripts": {
+    "test": "echo 'frontend stub' && exit 0",
+    "dev": "echo 'frontend stub: Phase 1+'"
+  }
+}

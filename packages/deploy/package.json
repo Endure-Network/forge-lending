@@ -1,0 +1,8 @@
+{
+  "name": "@endure/deploy",
+  "private": true,
+  "scripts": {
+    "deploy:local": "forge script src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast",
+    "test": "exit 0"
+  }
+}

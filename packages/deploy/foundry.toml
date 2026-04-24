@@ -1,0 +1,14 @@
+[profile.default]
+solc_version = "0.8.19"
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 200
+src = 'src'
+script = 'src'
+test = 'test'
+out = 'out'
+fs_permissions = [
+  { access = "read", path = "../contracts" },
+  { access = "read-write", path = "./broadcast" },
+  { access = "read", path = "../contracts/.upstream-sha" }
+]

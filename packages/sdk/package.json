@@ -1,0 +1,10 @@
+{
+  "name": "@endure/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "echo 'sdk stub: no tests yet' && exit 0",
+    "build": "echo 'sdk stub: no build yet' && exit 0"
+  }
+}

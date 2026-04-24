@@ -1,0 +1,5 @@
+@endure/contracts/=../contracts/src/
+@forge-std/=../contracts/lib/forge-std/src/
+@openzeppelin-contracts/=../contracts/lib/openzeppelin-contracts/
+@protocol/=../contracts/src/
+@test/=../contracts/test/
