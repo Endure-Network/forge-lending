@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Foundry - contracts
+packages/contracts/out/
+packages/contracts/cache/
+packages/contracts/broadcast/
+
+# Foundry - deploy
+packages/deploy/broadcast/
+!packages/deploy/broadcast/addresses.json
+
+# Environment files
+.env*
+
+# OS
+.DS_Store
+
+# Sisyphus evidence (per-run, not tracked)
+.sisyphus/evidence/

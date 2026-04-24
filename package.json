@@ -1,0 +1,9 @@
+{
+  "name": "endure",
+  "private": true,
+  "packageManager": "pnpm@9.x",
+  "scripts": {
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  }
+}
