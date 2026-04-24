@@ -126,6 +126,7 @@ jobs:
       - name: Deploy to local anvil
         run: |
           cd packages/deploy
+          mkdir -p broadcast
           forge script src/DeployLocal.s.sol \
             --rpc-url http://localhost:8545 \
             --broadcast \
