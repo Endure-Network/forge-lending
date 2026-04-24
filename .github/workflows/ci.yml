@@ -1,38 +1,150 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   contracts-build:
+    name: forge build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Forge version
+        run: forge --version
       - name: Build contracts
         run: forge build --root packages/contracts
 
   contracts-test:
+    name: forge test + gas snapshot
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
-      - name: Test contracts
-        run: forge test --root packages/contracts
-      - name: Gas snapshot check
+        with:
+          version: stable
+      - name: Forge version
+        run: forge --version
+      - name: Run all Foundry tests (unit + integration + invariant)
+        run: forge test --root packages/contracts -v
+      - name: Gas snapshot regression check
         run: ./scripts/gas-snapshot-check.sh
 
-  pnpm-test:
+  forbidden-patterns:
+    name: forbidden-pattern scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan src/ for stripped-contract identifiers
+        run: ./scripts/check-forbidden-patterns.sh
+
+  stance-b-audit:
+    name: Stance B byte-identical audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned upstream SHA
+        id: sha
+        run: echo "UPSTREAM_SHA=$(cat packages/contracts/.upstream-sha)" >> "$GITHUB_OUTPUT"
+      - name: Clone upstream at pinned commit
+        run: |
+          git clone --filter=blob:none https://github.com/moonwell-fi/moonwell-contracts-v2.git /tmp/upstream
+          cd /tmp/upstream
+          git checkout ${{ steps.sha.outputs.UPSTREAM_SHA }}
+      - name: Compare every kept .sol against upstream
+        run: |
+          set -e
+          LOCAL=$GITHUB_WORKSPACE/packages/contracts
+          # Documented deviations from FORK_MANIFEST.md section 5.
+          # Any file listed here MAY diverge from upstream; any file NOT listed here MUST NOT.
+          DOCUMENTED_DEVIATIONS=("src/rewards/MultiRewardDistributor.sol")
+          is_documented() {
+            local f=$1
+            for d in "${DOCUMENTED_DEVIATIONS[@]}"; do
+              [ "$f" = "$d" ] && return 0
+            done
+            return 1
+          }
+          DIVERGED=0
+          MATCH=0
+          DOCUMENTED=0
+          while IFS= read -r f; do
+            REL=${f#$LOCAL/}
+            # Skip Endure-authored files (intentional additions, tracked in FORK_MANIFEST.md section 3)
+            if [[ "$REL" == src/endure/* ]]; then continue; fi
+            if [ -f "/tmp/upstream/$REL" ]; then
+              UP=$(sha256sum "/tmp/upstream/$REL" | awk '{print $1}')
+              LO=$(sha256sum "$f" | awk '{print $1}')
+              if [ "$UP" = "$LO" ]; then
+                MATCH=$((MATCH+1))
+              elif is_documented "$REL"; then
+                DOCUMENTED=$((DOCUMENTED+1))
+                echo "::warning file=$REL::documented Stance B deviation (see FORK_MANIFEST.md section 5)"
+              else
+                DIVERGED=$((DIVERGED+1))
+                echo "::error file=$REL::UNDOCUMENTED Stance B violation - add to FORK_MANIFEST.md section 5 or revert the change"
+              fi
+            fi
+          done < <(find "$LOCAL/src" -name "*.sol" -type f | sort)
+          echo "Stance B: byte-identical=$MATCH documented-deviations=$DOCUMENTED undocumented-diverged=$DIVERGED"
+          if [ "$DIVERGED" -ne 0 ]; then exit 1; fi
+
+  e2e-smoke:
+    name: live-chain E2E (anvil)
+    runs-on: ubuntu-latest
+    needs: [contracts-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Start anvil in background
+        run: |
+          anvil --silent > /tmp/anvil.log 2>&1 &
+          for i in {1..10}; do
+            if curl -s -X POST http://localhost:8545 \
+                 -H "Content-Type: application/json" \
+                 --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+                 | grep -q '"result"'; then
+              echo "anvil up"
+              break
+            fi
+            sleep 1
+          done
+      - name: Deploy to local anvil
+        run: |
+          cd packages/deploy
+          forge script src/DeployLocal.s.sol \
+            --rpc-url http://localhost:8545 \
+            --broadcast \
+            --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+      - name: Run E2E smoke test
+        run: ./scripts/e2e-smoke.sh
+
+  pnpm-workspace:
+    name: pnpm workspace (non-contracts)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.1
       - name: Install dependencies
-        run: pnpm install
-      - name: Run tests
+        run: pnpm install --frozen-lockfile=false
+      - name: Run workspace tests
         run: pnpm -r test
