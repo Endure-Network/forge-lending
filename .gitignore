@@ -13,6 +13,8 @@ packages/deploy/broadcast/
 
 # Environment files
 .env*
+!.env.example
+!**/.env.example
 
 # OS
 .DS_Store
