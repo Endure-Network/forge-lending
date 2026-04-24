@@ -60,4 +60,3 @@ Explicit list:
 - `rewards/MultiRewardDistributor.sol`, `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — RESTORED as Stance B exception
 
 ## 5. Unresolved Deviations
-None. Section 5 is intentionally empty at Phase 0 completion.
