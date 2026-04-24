@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "build": "forge build",
-    "test": "forge test",
+    "test": "echo '@endure/contracts: run forge test directly; see CI contracts-test job' && exit 0",
+    "test:forge": "forge test",
     "snapshot": "forge snapshot"
   }
 }
