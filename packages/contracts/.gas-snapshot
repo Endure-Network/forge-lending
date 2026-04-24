@@ -1,6 +1,5 @@
 AliceLifecycleTest:test_Integration_AliceFullLifecycle() (gas: 709412)
 ComptrollerUnitTest:testRewards() (gas: 606801)
-ComptrollerUnitTest:testSettingCF(uint256) (runs: 256, μ: 56383, ~: 70278)
 ComptrollerUnitTest:testWiring() (gas: 61881)
 EnduRateModelParamsTest:test_AlphaBorrowCapIs1NotZero() (gas: 3575)
 LiquidationTest:test_Integration_LiquidationOnPriceDrop() (gas: 505596)
