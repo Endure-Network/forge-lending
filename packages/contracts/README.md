@@ -61,5 +61,67 @@ npm run deploy:local
 ```
 Note: The Phase 0 deployment script is not idempotent. Restart the local Anvil chain before re-running. See `packages/deploy/README.md` for details.
 
+## Market Parameters (Phase 0)
+
+| Parameter | mWTAO | mMockAlpha30 | mMockAlpha64 |
+|-----------|-------|--------------|--------------|
+| Collateral Factor | 0% | 25% | 25% |
+| Borrow Cap | unlimited | 1 wei (blocked) | 1 wei (blocked) |
+| Supply Cap | unlimited | 10,000 tokens | 10,000 tokens |
+| Reserve Factor | 15% | 15% | 15% |
+
+Only WTAO is borrowable in Phase 0. Alpha markets serve as collateral only.
+
+## Interest Rate Model (mWTAO)
+
+JumpRateModel with:
+- Base rate: 2% per year
+- Multiplier: 10% per year (to kink)
+- Jump multiplier: 300% per year (above kink)
+- Kink: 80% utilization
+
+Alpha markets use zero-rate IRM (borrowing disabled via borrow cap = 1 wei).
+
+## Seed Deposits
+
+Every market receives a seed deposit of `1e18` (1 whole token) at listing time. The resulting mTokens are burned to `address(0xdEaD)` to prevent empty-market donation attacks. This is verified by `test_EveryMarketHasPositiveTotalSupply` and `test_DeadAddressHoldsSeedMTokens`.
+
+## Test Suites
+
+| Suite | File | Tests |
+|-------|------|-------|
+| MockAlpha unit | `test/endure/MockAlpha.t.sol` | 6 |
+| WTAO unit | `test/endure/WTAO.t.sol` | 2 |
+| MockPriceOracle unit | `test/endure/MockPriceOracle.t.sol` | 7 |
+| EnduRateModelParams | `test/endure/EnduRateModelParams.t.sol` | 1 |
+| RBAC separation | `test/endure/RBACSeparation.t.sol` | 7 |
+| Alice lifecycle | `test/endure/integration/AliceLifecycle.t.sol` | 1 |
+| Liquidation + negatives | `test/endure/integration/Liquidation.t.sol` | 3 |
+| Seed deposit + negatives | `test/endure/SeedDeposit.t.sol` | 5 |
+| Invariant solvency | `test/endure/invariant/InvariantSolvency.t.sol` | 2 (1000 runs × 50 depth) |
+
+Run all: `forge test --root packages/contracts`
+
+## Gas Snapshot
+
+A committed gas snapshot is maintained at `.gas-snapshot`. CI enforces no regressions:
+
+```bash
+scripts/gas-snapshot-check.sh
+```
+
+To update after intentional gas changes: `forge snapshot --root packages/contracts`
+
+## Known Phase 0 Limitations
+
+- Deploy script is **not idempotent** — requires fresh Anvil per run
+- No real Chainlink oracle wiring (ChainlinkOracle.sol kept as reference only)
+- No native TAO wrap semantics (WTAO is a plain ERC20 mock)
+- No Timelock or GovernorBravo (Phase 4)
+- No Gnosis Safe or multisig (Phase 1/2)
+
 ## Implementation Notes
+
 - **JumpRateModel**: The "JumpRateModelV2" referenced in roadmap documentation maps to the upstream `JumpRateModel.sol` implementation.
+- **MultiRewardDistributor**: Kept in `src/rewards/` as a Stance B exception — `ComptrollerStorage.sol` imports it and cannot be modified without breaking upstream backport discipline.
+- **Stance B**: All kept Moonwell `.sol` files under `src/` are byte-identical to upstream commit `8d5fb11`. See `FORK_MANIFEST.md` for the full audit trail.
