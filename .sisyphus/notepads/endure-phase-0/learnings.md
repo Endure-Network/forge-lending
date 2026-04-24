@@ -52,3 +52,10 @@
 - `packages/deploy/foundry.toml` needed `allow_paths = ["../contracts"]` in addition to fs permissions so Forge could compile sibling-package imports from `packages/contracts/**`.
 - For current Foundry, the reliable local broadcast invocation was `forge script src/DeployLocal.s.sol:DeployLocal --rpc-url http://localhost:8545 --broadcast --private-key <anvil-key>` from `packages/deploy/`; omitting the contract target or wallet caused CLI/runtime failures.
 - Writing `broadcast/addresses.json` via `vm.writeFile` with explicit JSON text was stable; the initial nested `stdJson` approach produced an incomplete artifact under this toolchain.
+
+## [2026-04-24] Tasks 23-24 invariant + seed verification
+
+- Invariant tests need `StdInvariant` explicitly; `targetContract(...)` is not available from `Test` alone.
+- The solvency check must stay underlying-denominated: `cash + totalSupply * exchangeRate / 1e18 >= totalBorrows + totalReserves`.
+- `MockPriceOracle` admin defaults to the deploy caller, so invariant handlers that move oracle prices must be granted oracle admin rights during test setup.
+- Alpha-market borrow-cap enforcement reverts with `market borrow cap reached`, so the negative test should assert the revert instead of expecting a non-zero return code.

@@ -1,0 +1,25 @@
+Task 23 verification evidence — 2026-04-24
+
+Command: forge test --root packages/contracts --match-contract InvariantSolvency
+Result: PASS
+Key output:
+- Ran 2 tests for test/endure/invariant/InvariantSolvency.t.sol:InvariantSolvencyTest
+- [PASS] invariant_SolvencyGlobal() (runs: 1000, calls: 50000, reverts: 38)
+- [PASS] test_InvariantHandlerCoverage() (gas: 2237936)
+- Suite result: ok. 2 passed; 0 failed; 0 skipped
+
+Command: forge test --root packages/contracts --match-test test_InvariantHandlerCoverage
+Result: PASS
+Key output:
+- Ran 1 test for test/endure/invariant/InvariantSolvency.t.sol:InvariantSolvencyTest
+- [PASS] test_InvariantHandlerCoverage() (gas: 2237936)
+- Suite result: ok. 1 passed; 0 failed; 0 skipped
+
+Command: forge build --root packages/contracts
+Result: PASS with existing upstream warning
+Key output:
+- Compiler run successful with warnings
+- Existing warning is from src/MErc20Delegator.sol payable fallback lacking receive()
+
+Diagnostics note:
+- Solidity LSP diagnostics are unavailable in this environment because no .sol LSP server is configured.

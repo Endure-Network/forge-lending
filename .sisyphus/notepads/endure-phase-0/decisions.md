@@ -51,3 +51,9 @@
 - Kept `DeployLocal.s.sol` chain-locked to Anvil (`31337`) and enforced Phase 0 admin semantics by requiring `ADMIN_EOA == deployer` during broadcast.
 - Wrote `packages/deploy/broadcast/addresses.json` directly from the script after `_deploy()` so the local deploy artifact always includes the 13 deployed contract addresses plus deployer/role metadata.
 - Added deploy-package `allow_paths = ["../contracts"]` so `packages/deploy` can compile against the sibling Foundry package instead of copying helper logic locally.
+
+## [2026-04-24] Tasks 23-24 test harness choices
+
+- Scoped the invariant campaign to `mWTAO` solvency because it is the only borrowable market in Phase 0; alpha markets remain collateral-only.
+- Transferred `MockPriceOracle` admin from the test contract to the invariant handler so bounded oracle-price moves can execute inside both the invariant run and the explicit coverage test.
+- Kept handler oracle moves bounded to `[0.1e18, 10e18]` so the invariant explores solvency/liquidation paths without degenerating into zero-price tautologies.

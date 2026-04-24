@@ -12,3 +12,7 @@
 ## [2026-04-24] Task 20 deploy script quirks
 
 - In this Foundry version, the task's literal root-level command (`forge script --root packages/deploy src/DeployLocal.s.sol --rpc-url ... --broadcast`) did not work as written: the CLI rejected the path without an explicit target contract, and broadcasting required an explicit wallet (`--private-key` for Anvil). Verified path instead: run from `packages/deploy/` with `src/DeployLocal.s.sol:DeployLocal` plus the Anvil private key.
+
+## [2026-04-24] Tasks 23-24 verification caveats
+
+- Solidity LSP diagnostics could not be run for the changed `.sol` files because this environment has no Solidity LSP server configured; verification used fresh `forge build` and `forge test` runs instead.

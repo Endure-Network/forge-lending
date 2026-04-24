@@ -1,0 +1,18 @@
+Task 24 verification evidence — 2026-04-24
+
+Command: forge test --root packages/contracts --match-contract SeedDepositTest
+Result: PASS
+Key output:
+- Ran 5 tests for test/endure/SeedDeposit.t.sol:SeedDepositTest
+- [PASS] test_DeadAddressHoldsSeedMTokens()
+- [PASS] test_EveryMarketHasPositiveTotalSupply()
+- [PASS] test_Negative_AlphaBorrowBlockedByCap()
+- [PASS] test_Negative_SetCFBeforeOracleReverts()
+- [PASS] test_SeedAmountMatchesConstant()
+- Suite result: ok. 5 passed; 0 failed; 0 skipped
+
+Build context:
+- forge build --root packages/contracts succeeded after adding the new tests.
+
+Diagnostics note:
+- Solidity LSP diagnostics are unavailable in this environment because no .sol LSP server is configured.
