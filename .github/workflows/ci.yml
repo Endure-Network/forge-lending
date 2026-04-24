@@ -20,6 +20,8 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
       - name: Test contracts
         run: forge test --root packages/contracts
+      - name: Gas snapshot check
+        run: ./scripts/gas-snapshot-check.sh
 
   pnpm-test:
     runs-on: ubuntu-latest
