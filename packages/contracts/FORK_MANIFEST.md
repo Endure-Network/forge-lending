@@ -12,7 +12,8 @@ Audit trail of every divergence from `moonwell-fi/moonwell-contracts-v2` at pinn
 - `src/stkWell/*` — WELL staking safety module
 - `src/IStakedWell.sol`
 - `src/xWELL/*` — cross-chain WELL
-- `src/rewards/MultiRewardDistributor.sol`, `IMultiRewardDistributor.sol`, `MultiRewardDistributorCommon.sol`, `MultiRewardsDeploy.sol` — NOTE: MultiRewardDistributor.sol, IMultiRewardDistributor.sol, MultiRewardDistributorCommon.sol were RESTORED as Stance B exception (ComptrollerStorage.sol imports them)
+- `src/rewards/MultiRewardsDeploy.sol` — deploy scaffolding for stripped rewards pipeline
+- (NOTE: `MultiRewardDistributor.sol`, `IMultiRewardDistributor.sol`, and `MultiRewardDistributorCommon.sol` are intentionally KEPT, not stripped; `ComptrollerStorage.sol` imports them for storage layout. They remain byte-identical to upstream — see section 4.)
 - `src/morpho/*` — Morpho integrations
 - `src/tokensale/*` — WELL vesting
 - `src/views/MorphoViews*.sol`, `MorphoBlueInterface.sol`, `MetaMorphoInterface.sol`
@@ -57,6 +58,6 @@ Explicit list:
 - `router/WETHRouter.sol`, `router/IWETH.sol`
 - `Recovery.sol`, `OEVProtocolFeeRedeemer.sol`
 - `4626/` (except deleted MoonwellERC4626.sol), `cypher/`, `market/`, `views/MoonwellViewsV1*.sol`
-- `rewards/MultiRewardDistributor.sol`, `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — RESTORED as Stance B exception
+- `rewards/MultiRewardDistributor.sol`, `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — kept byte-identical (required by `ComptrollerStorage.sol` storage layout)
 
 ## 5. Unresolved Deviations
