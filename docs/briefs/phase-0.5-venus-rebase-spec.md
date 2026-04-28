@@ -29,6 +29,73 @@ The spec declared two specifics that were adjusted during execution:
 
 Three harness files (`VRTConverterHarness.sol`, `VRTVaultHarness.sol`, `XVSVestingHarness.sol`) were not vendored because their upstream relative imports only resolve under Hardhat. They will be vendored in Stage B Chunk 4. See `FORK_MANIFEST.md` Section 6.2.
 
+## Stage A findings → Stage B design constraints
+
+Stage A surfaced concrete information that Prometheus must treat as **known facts**, not items to rediscover. Each item below comes with the file or test that proves it.
+
+### F1. Diamond facet cut requires ~60 selectors, not the ~12 the original spike used
+
+Stage B's deployment helper must register the full set of selectors enumerated in `test/endure/venus/VenusDirectLiquidationSpike.t.sol::_buildFacetCut` and its four `_*FacetSelectors()` helper functions. Specifically:
+
+- **MarketFacet**: 31 selectors (21 logic functions + 10 ComptrollerStorage public-getter selectors).
+- **PolicyFacet**: 16 selectors (allowance + verify hooks + liquidity views).
+- **SetterFacet**: 12 selectors (Phase 0.5-relevant subset; full surface added in later chunks if needed).
+- **RewardFacet**: 2 selectors (`claimVenus(address)` overload + `getXVSVTokenAddress`). All reward state stays zero per Decision #10.
+- **FlashLoanFacet**: NOT registered in Stage A or in Endure's deployed surface.
+
+Critical: ComptrollerStorage public state variables (`oracle()`, `comptrollerLens()`, `liquidatorContract()`, etc.) need their auto-generated getter selectors registered on a facet. The Diamond does not auto-dispatch storage getters even though every facet's bytecode contains them. We register them on MarketFacet by convention.
+
+### F2. VToken's `liquidateBorrowFresh` calls the FOUR-arg `liquidateCalculateSeizeTokens`
+
+Signature: `liquidateCalculateSeizeTokens(address borrower, address vTokenBorrowed, address vTokenCollateral, uint256 actualRepayAmount)`. There is also a 3-arg variant in the Venus codebase, but VToken does not use it. Both must be registered (the 3-arg is used by other call sites like ComptrollerLens). Selector for the 4-arg version: `bytes4(keccak256("liquidateCalculateSeizeTokens(address,address,address,uint256)"))`.
+
+### F3. `setCollateralFactor` rejects LT < CF via Compound's soft-fail pattern
+
+Returns a non-zero error code; does NOT revert. Tests must assert on the return value, not `vm.expectRevert`. Same pattern applies to many other Venus state-mutation functions inherited from Compound v2.
+
+### F4. `markets(address)` returns 7 fields, not 3
+
+Full shape: `(bool isListed, uint256 collateralFactorMantissa, bool isVenus, uint256 liquidationThresholdMantissa, uint256 liquidationIncentiveMantissa, uint96 marketPoolId, bool isBorrowAllowed)`. Stage B's deploy helper and tests must decode the full tuple.
+
+### F5. Three Venus harness files have upstream-broken relative imports
+
+`contracts/test/VRTConverterHarness.sol`, `VRTVaultHarness.sol`, `XVSVestingHarness.sol` use `import "../../contracts/...";` that only resolves under Hardhat (where source root is the Venus repo root, not `contracts/`). Stage A omits them. Stage B Chunk 4 must either:
+
+- Re-vendor them and rely on Hardhat's path resolution (preferred — they're 0.5.16 legacy used only by Hardhat tests), OR
+- Patch the imports as a documented Stance B exception (each one is a 1-line `../../contracts/X` → `../X` fix).
+
+### F6. Foundry config: `auto_detect_solc = true` is the right primitive
+
+The dual-vendor intermediate state requires both 0.8.19 (Phase 0 Moonwell) and 0.8.25 (Phase 0.5 Venus) compilation, plus Venus's own legacy 0.5.16 / 0.5.17 sources. Foundry's `auto_detect_solc = true` dispatches the right compiler per file based on pragma. Stage B Chunk 5b (final cleanup) reverts to `solc_version = "0.8.25"` once Moonwell is deleted, but before that the auto-detect mode is mandatory.
+
+### F7. OpenZeppelin remappings need longest-prefix layering
+
+Phase 0 Moonwell uses `@openzeppelin-contracts/...` (with dash). Venus uses `@openzeppelin/contracts/...` and `@openzeppelin/contracts-upgradeable/...` (no dash). Solidity's longest-prefix-wins resolution requires the more-specific Venus remappings BEFORE the catch-all `@openzeppelin/=lib/openzeppelin-contracts/`. The committed `remappings.txt` (see "Remappings" section below) reflects the working pattern.
+
+### F8. Three Endure-authored mocks already exist and are reusable in Stage B
+
+- `src/endure/MockResilientOracle.sol` (79 LOC) — implements `ResilientOracleInterface` with admin-set per-vToken and per-asset prices.
+- `src/endure/AllowAllAccessControlManager.sol` (78 LOC) — implements `IAccessControlManagerV8` + OpenZeppelin `IAccessControl` as allow-all.
+
+Stage B Chunk 2's deployment helper consumes both directly. Do NOT re-author them.
+
+### F9. Phase 0 chassis still compiles and tests green under the new Foundry config
+
+`forge test` reports 52/52 Phase 0 Moonwell tests pass under solc 0.8.19 + cancun + auto-detect. No Phase 0 regression risk introduced by the toolchain bump. Stage B can proceed without re-validating the Moonwell baseline.
+
+### F10. Spike file landed in `test/endure/venus/` not `test-foundry/`
+
+Foundry's `test` config takes a single directory string. The spec's original `test-foundry/` name was tactical scaffolding from the external Venus spike repo; in Endure it never materialized as a directory. The Stage A spike at `test/endure/venus/VenusDirectLiquidationSpike.t.sol` IS the file the spec called for, just at its Stage-B-final location. Stage B Task 4 (originally "fold the spike into test/endure/venus/") is therefore a no-op.
+
+### Implication for Prometheus
+
+The implementation plan must:
+1. Reference these findings explicitly so executors don't re-discover them.
+2. Skip the obsolete "set up test-foundry/ directory" subtask (F10).
+3. Skip the obsolete "author MockResilientOracle / AllowAllACM" subtasks (F8) — they exist.
+4. Use the 60-selector cut from F1 as the canonical input to Chunk 2's EndureDeployHelper rewrite.
+5. Document F2-F4 as failure-mode expectations in test design.
+
 ## Context
 
 Endure Phase 0 shipped a Moonwell v2 Foundry fork with local Anvil deployment, mock alpha collateral, mock WTAO borrow market, integration tests, invariant coverage, gas snapshot CI, Stance B byte-identical audit discipline, and live-chain smoke validation. The Phase 0 codebase is disciplined: byte-identical to Moonwell `8d5fb1107babf7935cfabc2f6ecdb1722547f085`, with a small Endure-authored surface (mocks + deploy helper + test suites totaling ~111 LOC of source plus ~854 LOC of tests).
@@ -81,7 +148,7 @@ The 15 decisions locked during the brainstorm phase of this spec are summarized 
 | 11 | All Endure Foundry tests are ported with mandatory behavior-mapping table discipline. |
 | 12 | All 37 non-fork Venus Hardhat tests are ported and green; fork tests are skipped. VAI/Prime/XVS/Liquidator/Swap test-fixture infrastructure is accepted as a scope expansion. |
 | 13 | Pin: `6400a067` / `v10.2.0-dev.5`. |
-| 14 | Stage A spike code lives at `packages/contracts/test-foundry/VenusDirectLiquidationSpike.t.sol`. |
+| 14 | Stage A spike code lives at `packages/contracts/test/endure/venus/VenusDirectLiquidationSpike.t.sol` (revised from original `test-foundry/` path during Stage A execution — see finding F10). |
 | 15 | Anvil deployment uses `forge script` (canonical); Hardhat fixtures use `hardhat-deploy`. Branch: long-lived `phase-0.5-venus-rebase` with per-chunk PRs, single squash-merge to main with archival tag `moonwell-v0.1.0`. |
 
 ## Stage A re-verdict
@@ -125,6 +192,8 @@ The spike used `ComptrollerMock` for the lifecycle and liquidation flow, NOT the
 Stage B does NOT begin until Stage A is GREEN end-to-end inside the Endure repository. Closing the five YELLOW gates is **Task 0** of this spec. Once Task 0 is GREEN, Stage B becomes a mechanical port instead of a combined "spike + rebase" effort, which substantially reduces risk.
 
 ## Task 0: Tightened Stage A
+
+> **Status: COMPLETE (2026-04-28).** This section is preserved as the originally-written Task 0 specification. Stage A's actual execution diverged in two minor ways documented under "Stage A deviations from spec" above. Where the text below uses future tense ("must", "should"), read it as the past-tense record of what Task 0 required. Specifically: the spike file lives at `packages/contracts/test/endure/venus/VenusDirectLiquidationSpike.t.sol` (NOT `test-foundry/` as written below) — see finding F10. The 7 tests, vendoring requirements, mock requirements, and Stage A verdict are all met.
 
 Task 0 lives in the Endure repository at `packages/contracts/test-foundry/`. This is a new top-level test directory inside the contracts package, distinct from `packages/contracts/test/` which holds steady-state tests. The directory contains only Stage A artifacts.
 
@@ -276,33 +345,69 @@ The full Venus `contracts/` tree at commit `6400a067` is copied verbatim into `s
 
 The vendored tree is byte-identical to upstream. Foundry's compilation graph will only compile the subset reachable from Endure's deploy helper and tests; the unused VAI/Prime/XVS/etc. files compile only when Hardhat references them.
 
+### Why old Solidity is vendored
+
+The vendored tree includes ~105 files at Solidity `0.5.16` / `^0.5.16` (compiles as 0.5.17). **Zero of them are on Endure's deployed surface.** Endure deploys only solc-0.8.25 contracts (Diamond + facets + ComptrollerLens + VBep20Immutable + TwoKinksInterestRateModel + Endure-authored mocks). The 0.5.x files exist for two specific reasons that follow directly from locked decisions:
+
+1. **Stance B byte-identity audit (Decision #2: vendor full Venus tree).** The audit script SHA256-compares every file under `src/venus-staging/` and `lib/venusprotocol-*/contracts/` against the corresponding file at the pinned Venus commit. Excluding the 0.5.x subsystems would weaken the audit posture: future Venus upstream changes to those subsystems (security fixes, upgrades) would not be caught.
+2. **Upstream Hardhat test parity (Decision #12: all 37 non-fork Venus tests green).** Many of the upstream tests exercise VAI / VRT / XVS / Liquidator / DelegateBorrowers code paths that live at 0.5.16. Those tests cannot pass without the corresponding contracts being deployable in Hardhat fixtures.
+
+Categorical breakdown of the 0.5.x files:
+
+- **Pre-Diamond legacy VTokens** (`Tokens/VTokens/legacy/*`, ~12 files): `VBep20R1`, `VTokenR1`, etc. Older VToken implementations from before Venus migrated to the Diamond pattern. Kept upstream for storage-layout backwards compat in BSC mainnet upgrades. Endure deploys `VBep20Immutable` (modern) and has no upgrade history; these are pure Stance B baggage.
+- **Pre-Diamond IRMs** (`InterestRateModels/{InterestRateModel,JumpRateModel,WhitePaperInterestRateModel}.sol`): old IRM interface family. Endure uses `TwoKinksInterestRateModel` (V8). Pure Stance B baggage.
+- **VAI subsystem** (`VAIVault/*`, `Tokens/VAI/*`, ~12 files): Venus's USD-pegged stablecoin and its vault. Out-of-Endure-scope per Non-goals; kept for Decision #12.
+- **VRT subsystem** (`VRTVault/*`, `Tokens/VRT/*`, ~7 files): Venus's pre-XVS reward token, retired upstream. Kept for Decision #12.
+- **XVS legacy parts** (`XVSVault/*`, `Tokens/XVS/{XVS,XVSVesting*,IXVSVesting}.sol`, ~10 files): Reward token vault and its vesting. Out-of-Endure-scope; kept for Decision #12.
+- **Old governance** (`lib/venusprotocol-governance-contracts/contracts/{Governance/{GovernorBravo*,Timelock,AccessControlledV5,IAccessControlManagerV5},legacy/*}`, ~13 files): pre-V8 governance, retired. Endure uses `IAccessControlManagerV8`. Kept for Stance B audit completeness.
+- **Old shared utils** (`Utils/{Context,ECDSA,Ownable,Owned,SafeCast,SafeMath,Tokenlock}.sol`, etc.): OpenZeppelin-style libraries vendored at 0.5.16 because the products above import them. Transitively required by #1.
+- **Old test fixtures** (`test/{BEP20,FaucetToken,Fauceteer,WBNB,WBTC,assets/BEP20*,...}.sol`, ~20 files): mock tokens for upstream Hardhat tests. Required for Decision #12.
+- **Active interfaces still referenced by 0.8.25 code** (`Oracle/PriceOracle.sol`, `Tokens/EIP20Interface.sol`, `Tokens/EIP20NonStandardInterface.sol`, etc.): a small handful of interfaces with `^0.5.0` pragma that 0.8.25 contracts import (the carat range allows it). These are NOT baggage — they are part of Endure's deployed surface's compile-time dependency graph.
+
+The cost of carrying the 0.5.x baggage:
+
+- ~10–15 seconds of cold Foundry compile time per CI run.
+- More CI runtime on Hardhat (which always compiles both compiler buckets).
+- Repository size (~60+ MB of legacy source).
+- Stage B Chunk 4 must build and maintain Hardhat fixtures for VAI / VRT / XVS / Liquidator / etc. so the upstream tests pass. This is the single largest line item in Stage B.
+
+The benefit is a strictly stronger upstream-validation posture: every drift in upstream Venus is caught either by Stance B byte-identity check or by an upstream test going red. If Endure ever wants to enable VAI / Prime / XVS as features in a later phase, the contracts are already audit-clean and ready to wire into the deploy helper. This was a deliberate decision made during the brainstorm phase of this spec.
+
 ### Solc and EVM target
 
-`foundry.toml` and `hardhat.config.ts` both target solc 0.8.25 with `evm_version = "cancun"`. Venus vendored files include some legacy 0.5.16 sources (notably VAI controller and parts of XVS vault). The Hardhat config registers both 0.5.16 and 0.8.25 compilers. Foundry's config registers 0.8.25 as the default and uses per-file pragma overrides for 0.5.16 sources via `[profile.default.solc_versions]`-equivalent path mapping.
+**Stage A (current state, dual-vendor intermediate):** `foundry.toml` uses `auto_detect_solc = true` with `evm_version = "cancun"`. Foundry dispatches the appropriate compiler per file based on each file's pragma. The build currently compiles ~437 files across 4 compiler versions: 0.5.16 (Venus legacy), 0.5.17 (Venus legacy with `^0.5.16` pragmas), 0.8.19 (Phase 0 Moonwell, going away in Stage B), 0.8.25 (Venus modern + Endure-authored). See finding F6.
 
-Foundry's tree-shake means 0.5.16 sources only compile if reachable from a Foundry test. Endure's Foundry tests do not import them, so in practice the Foundry build only sees 0.8.25.
+**Stage B Chunk 5b (steady state, post-Moonwell-delete):** Pin `solc_version = "0.8.25"` explicitly. The 0.8.19 bucket disappears entirely. The 0.5.16/0.5.17 buckets remain (Venus legacy that Endure does NOT deploy but vendors for Stance B audit + upstream Hardhat test parity — see "Why old Solidity is vendored" subsection below).
+
+`hardhat.config.ts` (added by Stage B Chunk 1) registers both 0.5.16 and 0.8.25 compilers explicitly because Hardhat does not have a Foundry-equivalent auto-detect. Pragma `^0.5.16` files are dispatched to 0.5.17.
+
+Foundry's tree-shake means a vendored 0.5.x file only compiles when something in `src/`, `test/`, or `script/` reaches it. Endure's deploy helper and Foundry tests touch only 0.8.25 contracts, so in practice Foundry compiles the 0.5.x bucket only when a Hardhat fixture happens to be invoked under Foundry (rare). The full 0.5.x compile pass is owned by Hardhat.
 
 ### Remappings
 
-Updated `packages/contracts/remappings.txt`:
+`packages/contracts/remappings.txt` as committed in Stage A. Order matters: Solidity uses longest-prefix-wins, so the more-specific OpenZeppelin entries must precede the catch-all `@openzeppelin/=lib/openzeppelin-contracts/`. See finding F7.
 
 ```text
 @forge-std/=lib/forge-std/src/
 @openzeppelin-contracts/=lib/openzeppelin-contracts/
-@openzeppelin/=lib/openzeppelin-contracts/
 @openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
+@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@openzeppelin/=lib/openzeppelin-contracts/
 @protocol/=src/
 @test/=test/
-@test-foundry/=test-foundry/
 @utils/=src/utils/
 @script/=script/
-@venusprotocol/access-control-contracts/=lib/access-control-contracts/
-@venusprotocol/governance-contracts/=lib/governance-contracts/
-@venusprotocol/oracle/=lib/oracle/
-@venusprotocol/solidity-utilities/=lib/solidity-utilities/
+@venusprotocol/governance-contracts/=lib/venusprotocol-governance-contracts/
+@venusprotocol/oracle/=lib/venusprotocol-oracle/
+@venusprotocol/protocol-reserve/=lib/venusprotocol-protocol-reserve/
+@venusprotocol/solidity-utilities/=lib/venusprotocol-solidity-utilities/
+@venusprotocol/token-bridge/=lib/venusprotocol-token-bridge/
 ```
 
-The `@venusprotocol/*` remappings handle Venus's external dependency packages. Each is vendored as a git submodule under `lib/` (matching Phase 0's `lib/openzeppelin-contracts/` pattern), pinned to the same commit Venus's package.json declares at `6400a067`.
+The 5 `@venusprotocol/*` remappings handle Venus's external dependency packages. Each is currently a plain copied tree under `lib/venusprotocol-*/` (Stage A simplification). Stage B Chunk 1 may convert them to git submodules pinned to their respective upstream commits (matching Phase 0's `lib/openzeppelin-contracts/` pattern); the simpler plain-copy approach is also acceptable as long as `FORK_MANIFEST.md` records the version pins.
+
+The `@test-foundry/` remapping that was briefly present during Stage A was removed in commit `a71392a` after the spike landed in `test/endure/venus/`. Do NOT re-add it.
 
 ### Stance B audit posture
 
