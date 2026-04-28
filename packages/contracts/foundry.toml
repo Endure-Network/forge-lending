@@ -1,6 +1,11 @@
 [profile.default]
-solc_version = "0.8.19"
-evm_version = "shanghai"
+# auto_detect_solc lets Foundry pick the right compiler per-file based on pragma.
+# Phase 0 vendored Moonwell files pin pragma 0.8.19; Phase 0.5 vendored Venus
+# files pin pragma 0.8.25 (with some legacy 0.5.16). Both must compile during
+# the rebase. Once Moonwell is removed in Stage B Chunk 5b, we will pin
+# solc_version = "0.8.25" explicitly.
+auto_detect_solc = true
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
 src = 'src'

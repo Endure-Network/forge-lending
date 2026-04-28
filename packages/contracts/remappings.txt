@@ -4,5 +4,11 @@
 @openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 @protocol/=src/
 @test/=test/
+@test-foundry/=test-foundry/
 @utils/=src/utils/
 @script/=script/
+@venusprotocol/governance-contracts/=lib/venusprotocol-governance-contracts/
+@venusprotocol/oracle/=lib/venusprotocol-oracle/
+@venusprotocol/protocol-reserve/=lib/venusprotocol-protocol-reserve/
+@venusprotocol/solidity-utilities/=lib/venusprotocol-solidity-utilities/
+@venusprotocol/token-bridge/=lib/venusprotocol-token-bridge/
