@@ -6,7 +6,6 @@
 @openzeppelin/=lib/openzeppelin-contracts/
 @protocol/=src/
 @test/=test/
-@test-foundry/=test-foundry/
 @utils/=src/utils/
 @script/=script/
 @venusprotocol/governance-contracts/=lib/venusprotocol-governance-contracts/
