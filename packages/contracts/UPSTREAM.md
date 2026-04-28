@@ -1,19 +1,77 @@
-# Upstream: moonwell-contracts-v2
+# Upstream
 
-## Source
+## Status
+
+This repository is in a **dual-vendor intermediate state** during the Phase 0.5
+Venus rebase (Stage A complete, Stage B pending). Both Moonwell v2 and Venus
+Core Pool source trees are vendored byte-identical and live side-by-side under
+`packages/contracts/src/`. Stage B will delete the Moonwell tree in its final
+cleanup commits and the Venus tree (currently at `src/venus-staging/`) will
+move to `src/`. See `docs/briefs/phase-0.5-venus-rebase-spec.md` for the
+full plan.
+
+## Primary upstream (Phase 0, currently live deployable surface)
+
+### Source
 
 - **Repository**: https://github.com/moonwell-fi/moonwell-contracts-v2
 - **Commit**: `8d5fb1107babf7935cfabc2f6ecdb1722547f085`
 - **Clone date**: 2026-04-23
 
+## Secondary upstream (Phase 0.5 staged, NOT yet on deployed surface)
+
+### Source
+
+- **Repository**: https://github.com/VenusProtocol/venus-protocol
+- **Commit**: `6400a067114a101bd3bebfca2a4bd06480e84831`
+- **Reference tag**: `v10.2.0-dev.5`
+- **Vendored on**: 2026-04-28
+- **Vendored under**: `packages/contracts/src/venus-staging/`
+
+### Rationale
+
+- `v10.2.0-dev.5` is functionally identical to `v10.2.0-dev.4` for our
+  contracts — `git diff v10.2.0-dev.4 v10.2.0-dev.5 -- contracts/` is empty
+  (the bump was audit PDFs only).
+- Both tags include the March 20, 2026 donation-attack patch merge (PR #664)
+  audited by Quantstamp, Certik, and Hashdit.
+- Older `v10.1.0` predates that fix and is not acceptable.
+- Endure's tightened Stage A spike at `test/endure/venus/VenusDirectLiquidationSpike.t.sol`
+  validates 8/8 hard gates from the spec against this exact pin.
+
+### Venus external dependency packages
+
+Each is vendored byte-identical under `lib/venusprotocol-*/`. Pinned versions
+match Venus's own package.json at the pinned commit. See each
+`lib/venusprotocol-*/VENDOR.md` for details.
+
+| Package | Version |
+|---------|---------|
+| `@venusprotocol/governance-contracts` | `2.13.0` |
+| `@venusprotocol/oracle` | `2.10.0` |
+| `@venusprotocol/protocol-reserve` | `3.4.0` |
+| `@venusprotocol/solidity-utilities` | `2.1.0` |
+| `@venusprotocol/token-bridge` | `2.7.0` |
+
 ## Configuration Divergences
 
 Endure diverges from upstream defaults to suit single-chain deployment:
-- **EVM Version**: `shanghai` (Upstream uses `cancun`).
-- **Optimizer**: `enabled = true`, `runs = 200` (Upstream uses `runs = 1`).
+- **Compiler dispatch**: `auto_detect_solc = true` (Stage A scaffolding;
+  reverts to pinned `solc_version = "0.8.25"` once Moonwell is deleted in
+  Stage B Chunk 5b). Required because Phase 0 vendored Moonwell pins
+  `pragma 0.8.19` and Phase 0.5 vendored Venus pins `pragma 0.8.25` (with
+  some legacy 0.5.16); both must compile during the rebase.
+- **EVM Version**: `cancun` (Phase 0 used `shanghai`; bumped 2026-04-28 for
+  Venus 0.8.25 contracts. Moonwell 0.8.19 contracts are forward-compatible).
+- **Optimizer**: `enabled = true`, `runs = 200` (Moonwell uses `runs = 1`).
 - **Invariants**: `runs = 1000`, `depth = 50`.
 - **RPC Endpoints**: Removed all external RPC providers from `foundry.toml`.
-- **Remappings**: Removed `@wormhole/` and `@proposals/`.
+- **Remappings**: Removed `@wormhole/` and `@proposals/`. Added 5
+  `@venusprotocol/*` remappings (see `remappings.txt`).
+- **OpenZeppelin remappings**: Distinct paths for `@openzeppelin/contracts/`
+  and `@openzeppelin/contracts-upgradeable/` (Solidity longest-prefix-wins)
+  to satisfy both Moonwell (`@openzeppelin-contracts/...` style) and Venus
+  (`@openzeppelin/...` style) imports without ambiguity.
 
 ## Vendored Dependencies
 

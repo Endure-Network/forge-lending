@@ -4,7 +4,30 @@
 
 **Active spec.** Consolidates and supersedes the previous draft of this file plus `docs/briefs/phase-0.5-venus-rebase-brief.md`. The brief is retained as historical Stage A evidence and is no longer authoritative for execution.
 
-This spec is the single source of truth for the Phase 0.5 rebase. It defines what gets built, in what order, with what guardrails, and what "done" means. Implementation does not start until this spec is approved. The implementation plan in `.sisyphus/plans/phase-0.5-venus-rebase.md` will be regenerated from this spec via the writing-plans skill after approval.
+This spec is the single source of truth for the Phase 0.5 rebase. It defines what gets built, in what order, with what guardrails, and what "done" means. The implementation plan in `.sisyphus/plans/phase-0.5-venus-rebase.md` will be regenerated from this spec via the writing-plans skill at the start of Stage B.
+
+### Stage A status: GREEN (completed 2026-04-28)
+
+Task 0 of this spec was executed in-session on branch `phase-0.5/stage-a-spike` (off `phase-0.5-venus-rebase`). All 8 hard gates from the spec close. 59/59 forge tests green (52 Phase 0 Moonwell + 7 new Venus spike tests).
+
+Evidence:
+- Spike test at `packages/contracts/test/endure/venus/VenusDirectLiquidationSpike.t.sol` (7 tests, all passing).
+- Vendored Venus tree at `packages/contracts/src/venus-staging/` (207 files, byte-identical to Venus commit `6400a067114a101bd3bebfca2a4bd06480e84831`).
+- Venus external dependency packages vendored under `packages/contracts/lib/venusprotocol-*/` (131 files across 5 packages).
+- Endure-authored mocks at `packages/contracts/src/endure/MockResilientOracle.sol` and `packages/contracts/src/endure/AllowAllAccessControlManager.sol`.
+- Updated `packages/contracts/FORK_MANIFEST.md` Section 6 with full Stage A audit trail.
+
+Stage B does NOT begin until the team explicitly accepts this spec and reviews the Stage A evidence on the feature branch.
+
+### Stage A deviations from spec
+
+The spec declared two specifics that were adjusted during execution:
+
+1. **Spike file location**: Spec called for `packages/contracts/test-foundry/`. Foundry's `test` config keys to exactly one directory, so the file lives at `packages/contracts/test/endure/venus/VenusDirectLiquidationSpike.t.sol` instead — its Stage-B-final location per the spec's own "Test porting strategy" section. The `test-foundry/` directory does not exist.
+
+2. **Foundry compiler config**: Spec called for `solc_version = "0.8.25"` directly. Stage A uses `auto_detect_solc = true` instead because the dual-vendor intermediate state requires both 0.8.19 (Phase 0 Moonwell) and 0.8.25 (Phase 0.5 Venus) compilation. Stage B Chunk 5b will revert to a pinned `solc_version = "0.8.25"` once Moonwell is deleted.
+
+Three harness files (`VRTConverterHarness.sol`, `VRTVaultHarness.sol`, `XVSVestingHarness.sol`) were not vendored because their upstream relative imports only resolve under Hardhat. They will be vendored in Stage B Chunk 4. See `FORK_MANIFEST.md` Section 6.2.
 
 ## Context
 
