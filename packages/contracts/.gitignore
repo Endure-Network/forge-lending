@@ -1,0 +1,5 @@
+# Hardhat byproducts (Stage B Chunk 1 will activate Hardhat side-by-side with Foundry)
+artifacts/
+cache_hardhat/
+deployments/localhost/
+deployments/hardhat/
