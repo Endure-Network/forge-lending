@@ -1,255 +1,56 @@
 # Endure Fork Manifest
 
-This manifest tracks every divergence from upstream sources. The repository
-is currently in a **dual-vendor intermediate state**: Phase 0 Moonwell v2
-remains on the deployed surface while Phase 0.5 Venus Core Pool is staged
-under `src/venus-staging/`. Stage B will fold Venus into `src/` and delete
-the Moonwell tree.
+This manifest tracks every divergence from upstream sources. The protocol uses Venus Protocol Core Pool as its chassis.
 
-- **Phase 0 (deployed)**: `moonwell-fi/moonwell-contracts-v2` @ `8d5fb1107babf7935cfabc2f6ecdb1722547f085`
-- **Phase 0.5 staged (not deployed)**: `VenusProtocol/venus-protocol` @ `6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`)
+## 1. Upstream
+- **Repository**: `VenusProtocol/venus-protocol`
+- **Pinned Commit**: `6400a067114a101bd3bebfca2a4bd06480e84831`
+- **Tag**: `v10.2.0-dev.5`
 
-Sections 1-5 below cover the archived Phase 0 (Moonwell) audit trail. The
-Moonwell chassis was deleted in Chunk 5b Commit A; these sections remain only
-as historical documentation. Section 6 covers the Phase 0.5 (Venus) staging
-state.
+## 2. Vendored Files (Stance B)
+All files under `src/` (excluding `src/endure/`) are byte-identical to the upstream repository at the pinned commit. Every file under `src/` must hash-match the corresponding file at `<venus>/contracts/<same-relative-path>`.
 
-## 1. Deleted Files (Strip Manifest)
-- `src/governance/TemporalGovernor.sol` — cross-chain governance; Endure is single-chain
-- `src/governance/ITemporalGovernor.sol`
-- `src/governance/WormholeTrustedSender.sol`, `IWormholeTrustedSender.sol`
-- `src/governance/multichain/*` — Wormhole-relayed governance
-- `src/governance/Well.sol` — WELL governance token
-- `src/wormhole/*` — Wormhole primitives
-- `src/stkWell/*` — WELL staking safety module
-- `src/IStakedWell.sol`
-- `src/xWELL/*` — cross-chain WELL
-- `src/rewards/MultiRewardsDeploy.sol` — deploy scaffolding for stripped rewards pipeline
-- (NOTE: `MultiRewardDistributor.sol`, `IMultiRewardDistributor.sol`, and `MultiRewardDistributorCommon.sol` are intentionally KEPT, not stripped; `ComptrollerStorage.sol` imports them for storage layout. They remain byte-identical to upstream — see section 4.)
-- `src/morpho/*` — Morpho integrations
-- `src/tokensale/*` — WELL vesting
-- `src/views/MorphoViews*.sol`, `MorphoBlueInterface.sol`, `MetaMorphoInterface.sol`
-- `src/views/MoonwellViewsV2.sol`, `MoonwellViewsV3.sol`, `ProposalView.sol` — cascade deletions (imported stripped contracts)
-- `src/4626/MoonwellERC4626.sol` — cascade deletion
-- `src/oracles/ChainlinkOEVMorphoWrapper.sol` — cascade deletion (imported morpho)
-- `proposals/mips/mip-b00/*`
-- Test files for all of the above (see strip manifest in plan)
-- Script files for all of the above
+## 3. Endure-authored Files
+Located in `src/endure/`:
+- `MockResilientOracle.sol`
+- `AllowAllAccessControlManager.sol`
+- `DenyAllAccessControlManager.sol`
+- `MockXVS.sol`
+- `MockAlpha30.sol`
+- `MockAlpha64.sol`
+- `WTAO.sol`
+- `EnduRateModelParams.sol`
 
-## 2. Modified Files (Stance B exceptions)
-| File | Modified By Task | Change Scope | Rationale |
-|------|------------------|--------------|-----------|
-| `packages/contracts/test/helper/BaseTest.t.sol` | Task 13 | Import prunes + deletion of setup methods referencing stripped contracts | Test helper was tightly coupled to stripped governance |
-| `packages/contracts/foundry.toml` | Task 12 | evm_version cancun→shanghai; optimizer_runs 1→200; remove RPC endpoints; add [invariant] profile | Endure-specific build target |
-| `packages/contracts/remappings.txt` | Task 12 | Remove @wormhole/, @proposals/. Keep @forge-std/, @openzeppelin/, @protocol/, @test/, @utils/, @script/ | Wormhole stripped |
+## 4. Test Helpers
+Located in `src/test-helpers/venus/`:
+- These files were moved from the upstream `test/` directory to support the Endure test suite.
+- Three harness files have documented import path deviations (see section 5).
 
-## 3. Added Files (Endure-authored)
-| File | Added By Task | Purpose |
-|------|---------------|---------|
-| `src/endure/MockAlpha30.sol` | 15 | Phase 0 test alpha ERC20 (netuid 30) |
-| `src/endure/MockAlpha64.sol` | 15 | Phase 0 test alpha ERC20 (netuid 64) |
-| `src/endure/WTAO.sol` | 16 | Phase 0 mock Wrapped TAO |
-| `src/endure/MockPriceOracle.sol` | 17 | Admin-set price oracle for Phase 0 |
-| `src/endure/EndureRoles.sol` | 18 | Struct library bundling 4 role addresses (NOT a multisig) |
-| `src/endure/EnduRateModelParams.sol` | 19 | Endure IRM + market param constants |
-| `test/endure/**` | 15-24 | Endure test suites |
-| `test/helper/EndureDeployHelper.sol` | 18 | Dual-mode (broadcast + test-only prank) deploy helper |
-| `packages/deploy/src/DeployLocal.s.sol` | 20 | Phase 0 local Anvil deploy script |
+## 5. Documented Deviations
+The following 3 harness files were re-vendored from Venus upstream with single-line import path patches to resolve under Endure's layout:
 
-## 4. Unchanged Files (Kept Core — ZERO diff vs upstream)
-Every file under `packages/contracts/src/` NOT listed in sections 1-3 is byte-identical to upstream.
+| File | Original import (upstream) | Patched import (Endure) |
+|------|---------------------------|------------------------|
+| `src/test-helpers/venus/VRTConverterHarness.sol` | `../../contracts/Tokens/VRT/VRTConverter.sol` | `../../venus-staging/Tokens/VRT/VRTConverter.sol` |
+| `src/test-helpers/venus/VRTVaultHarness.sol` | `../../contracts/VRTVault/VRTVault.sol` | `../../venus-staging/VRTVault/VRTVault.sol` |
+| `src/test-helpers/venus/XVSVestingHarness.sol` | `../../contracts/Tokens/XVS/XVSVesting.sol` | `../../venus-staging/Tokens/XVS/XVSVesting.sol` |
 
-Explicit list:
-- `Comptroller.sol`, `Unitroller.sol`, `ComptrollerStorage.sol`, `ComptrollerInterface.sol`
-- `MToken.sol`, `MTokenInterfaces.sol`, `MErc20.sol`, `MErc20Delegate.sol`, `MErc20Delegator.sol`, `MLikeDelegate.sol`
-- `MWethDelegate.sol`, `MWethOwnerWrapper.sol`, `WethUnwrapper.sol`
-- `irm/JumpRateModel.sol`, `irm/InterestRateModel.sol`, `irm/WhitePaperInterestRateModel.sol`
-- `oracles/ChainlinkOracle.sol`, `oracles/ChainlinkCompositeOracle.sol`, `oracles/PriceOracle.sol`, `oracles/AggregatorV3Interface.sol`, `oracles/StaticPriceFeed.sol`
-- `Exponential.sol`, `ExponentialNoError.sol`, `SafeMath.sol`, `CarefulMath.sol`, `TokenErrorReporter.sol`
-- `EIP20Interface.sol`, `EIP20NonStandardInterface.sol`
-- `router/WETHRouter.sol`, `router/IWETH.sol`
-- `Recovery.sol`, `OEVProtocolFeeRedeemer.sol`
-- `4626/` (except deleted MoonwellERC4626.sol), `cypher/`, `market/`, `views/MoonwellViewsV1*.sol`
-- `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — kept byte-identical (required by `ComptrollerStorage.sol` storage layout)
-- `rewards/MultiRewardDistributor.sol` — kept with documented import-path deviation; see section 5.1 below
+*Note: The paths were updated during the staging phase; in the steady-state Venus layout, these resolve relative to the `src/` root.*
 
-## 5. Unresolved Deviations
+## 6. lib/ Packages (External Dependencies)
+The following 5 `@venusprotocol/*` packages are vendored byte-identical under `lib/venusprotocol-*/`.
 
-### 5.1 `src/rewards/MultiRewardDistributor.sol` — five import paths rewritten
+| Package | Version | Git repo | Commit SHA |
+|---------|---------|----------|------------|
+| `lib/venusprotocol-governance-contracts/` | `2.13.0` | `VenusProtocol/governance-contracts` | `f8d3efe9578c8cd11330181bb4396f6b449e654c` |
+| `lib/venusprotocol-oracle/` | `2.10.0` | `VenusProtocol/oracle` | `c4bd1d95b5989c8f8938812471ab715df77c6b1e` |
+| `lib/venusprotocol-protocol-reserve/` | `3.4.0` | `VenusProtocol/protocol-reserve` | `80c53be90a70d9d4704efa33876dc77c0f48f8b2` |
+| `lib/venusprotocol-solidity-utilities/` | `2.1.0` | `VenusProtocol/solidity-utilities` | `d891bec6e60338132994560b9d47f2865ee33e0d` |
+| `lib/venusprotocol-token-bridge/` | `2.7.0` | `VenusProtocol/token-bridge` | `845a6fa27a0fde98ce6ad621f2340b247d23c866` |
 
-**Status**: Documented deviation (not byte-identical to upstream).
-
-**Change**: Five import statements rewritten from `@protocol/*` to relative (`../*`) paths:
-
-```diff
--import {MToken} from "@protocol/MToken.sol";
--import {Comptroller} from "@protocol/Comptroller.sol";
--import {MTokenInterface} from "@protocol/MTokenInterfaces.sol";
--import {ExponentialNoError} from "@protocol/ExponentialNoError.sol";
--import {MultiRewardDistributorCommon} from "@protocol/rewards/MultiRewardDistributorCommon.sol";
-+import {MToken} from "../MToken.sol";
-+import {Comptroller} from "../Comptroller.sol";
-+import {MTokenInterface} from "../MTokenInterfaces.sol";
-+import {ExponentialNoError} from "../ExponentialNoError.sol";
-+import {MultiRewardDistributorCommon} from "./MultiRewardDistributorCommon.sol";
-```
-
-**Why**: The `packages/deploy/` forge package consumes the contracts source through
-`allow_paths = ["../contracts"]` and its own remappings. When this file uses
-`@protocol/*` imports (upstream style), Solidity resolves the same transitive
-contracts (`MToken`, `MTokenInterfaces`, `ExponentialNoError`) through two
-paths — once via `./rewards/...` from `ComptrollerStorage.sol` and once via
-`@protocol/...` from this file — producing `Identifier already declared (2333)`
-errors in the deploy package's compilation context.
-
-The contracts package itself compiles cleanly with `@protocol/*` imports
-(only one remapping active). The deploy package cannot, without deeper
-remapping gymnastics that would break other `@protocol/*` consumers.
-
-**Semantic equivalence**: The rewritten imports point to the same files via
-different paths. No logic, types, or bytecode difference. `forge test` green
-in both compilation contexts. We verified against upstream commit 8d5fb11 that
-the remaining 1,244 lines of the file are byte-identical.
-
-**Restoration path**: Any future refactor that unifies remapping resolution
-across packages (e.g., a single top-level `remappings.txt` that both packages
-consume via a shared `allow_paths`, or publishing contracts as a git
-submodule) would let us restore byte-identical imports. Not pursued in
-Phase 0 because the cost/benefit is wrong: we'd touch the build system to fix
-a five-line cosmetic issue in a file we never deploy.
-
-**Runtime impact**: None. `MultiRewardDistributor` is not deployed by
-`DeployLocal.s.sol`. The file exists only because `ComptrollerStorage.sol`
-imports it for storage layout, and `ComptrollerStorage` is kept as a Stance B
-exception. Reward distribution is out of scope for Phase 0.
-
-**Upstream backport policy**: If upstream Moonwell ships a security fix to
-this file, re-apply the five import rewrites after backporting. The diff is
-minimal and mechanical. Checked: `git show upstream/main -- src/rewards/MultiRewardDistributor.sol`.
-
-## 6. Phase 0.5 Stage A — Venus Vendoring (Staged, Not Yet Deployed)
-
-Stage A of the Phase 0.5 Venus rebase has been completed inside this
-repository. Venus Core Pool is vendored byte-identical at commit
-`6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`) under
-`packages/contracts/src/venus-staging/`. Endure-authored Venus-shape mocks
-and a tightened spike test prove all 8 hard gates from the spec.
-
-Stage A is GREEN as of 2026-04-28. The team must explicitly accept this spec
-before Stage B begins.
-
-### 6.1 Venus tree vendored at `src/venus-staging/`
-
-207 `.sol` files copied byte-identical from `<venus>/contracts/` at the
-pinned commit. Stance B byte-identity audit posture: every file under
-`src/venus-staging/` MUST hash-match the corresponding file at
-`<venus>/contracts/<same-relative-path>`. Sample verification confirmed for
-`src/venus-staging/Comptroller/Diamond/Diamond.sol` (SHA-256 match).
-
-### 6.2 Three harness files re-vendored with import path patches
-
-The following 3 harness files were re-vendored from Venus upstream at commit
-`6400a067114a101bd3bebfca2a4bd06480e84831` into `src/test-helpers/venus/`
-with single-line import path patches. The logic is byte-identical to
-upstream; only the import path changed to resolve under Endure's layout.
-
-| File | Original import (upstream) | Patched import (Endure) | Rationale |
-|------|---------------------------|------------------------|-----------|
-| `src/test-helpers/venus/VRTConverterHarness.sol` | `../../contracts/Tokens/VRT/VRTConverter.sol` | `../../venus-staging/Tokens/VRT/VRTConverter.sol` | Upstream path assumes Venus repo root; patched for `src/venus-staging/` layout |
-| `src/test-helpers/venus/VRTVaultHarness.sol` | `../../contracts/VRTVault/VRTVault.sol` | `../../venus-staging/VRTVault/VRTVault.sol` | Same |
-| `src/test-helpers/venus/XVSVestingHarness.sol` | `../../contracts/Tokens/XVS/XVSVesting.sol` | `../../venus-staging/Tokens/XVS/XVSVesting.sol` | Same |
-
-All three are pragma `^0.5.16` legacy test infrastructure for VRT/XVS
-Vesting. They compile cleanly under both `forge build` and
-`hardhat compile`.
-
-### 6.3 Venus external dependencies vendored at `lib/venusprotocol-*/`
-
-131 `.sol` files across 5 packages, each byte-identical to the npm release
-pinned by Venus's own package.json at the pinned commit:
-
-| Package | Version | Source npm package |
-|---------|---------|--------------------|
-| `lib/venusprotocol-governance-contracts/` | `2.13.0` | `@venusprotocol/governance-contracts` |
-| `lib/venusprotocol-oracle/` | `2.10.0` | `@venusprotocol/oracle` |
-| `lib/venusprotocol-protocol-reserve/` | `3.4.0` | `@venusprotocol/protocol-reserve` |
-| `lib/venusprotocol-solidity-utilities/` | `2.1.0` | `@venusprotocol/solidity-utilities` |
-| `lib/venusprotocol-token-bridge/` | `2.7.0` | `@venusprotocol/token-bridge` |
-
-Each directory has a `VENDOR.md` recording the package name, version, and
-pinning evidence. Byte-identity is enforced for every `.sol` under each
-package's `contracts/` subtree.
-
-### 6.4 Endure-authored Venus-shape mocks (under `src/endure/`)
-
-| File | Purpose |
-|------|---------|
-| `src/endure/MockResilientOracle.sol` | Implements Venus `ResilientOracleInterface`. Admin-set per-vToken prices via `setUnderlyingPrice`; admin-set per-asset prices via `setDirectPrice`; `updatePrice` and `updateAssetPrice` are no-ops. Replaces Phase 0's `MockPriceOracle.sol` for Stage B's deployed surface. |
-| `src/endure/AllowAllAccessControlManager.sol` | Implements Venus `IAccessControlManagerV8` and OpenZeppelin `IAccessControl`. All bool-returning functions return `true`; all mutating functions are no-ops. Allows Venus contracts that gate calls behind ACM to pass through during Stage A spike testing without requiring a real governance deployment. |
-
-Both mocks are explicitly documented as NOT FOR PRODUCTION USE.
-
-### 6.5 Stage A spike test
-
-`packages/contracts/test/endure/venus/VenusDirectLiquidationSpike.t.sol`
-contains 7 tests that close all 8 spec hard gates:
-
-1. `test_DiamondRegistersRequiredCoreSelectors` — Gate 3
-2. `test_VBep20MarketsDeployAgainstUnitrollerProxy` — Gates 2, 5
-3. `test_ResilientOracleMockSatisfiesPriceReads` — Gate 4
-4. `test_FullLifecycleSupplyBorrowRepayRedeem` — Gate 6
-5. `test_DirectVTokenLiquidationWorksWhenLiquidatorContractUnset` — Gate 7
-6. `test_SetCollateralFactorRejectsLTBelowCF` — Gate 8
-7. `test_DiamondRoutesLifecycleThroughUnitroller` — Gate 2 (lifecycle, beyond selectors)
-
-Gate 1 (Foundry compile) is implicitly proven by the test file compiling.
-59/59 tests pass (52 Phase 0 + 7 Stage A).
-
-The spec called for `packages/contracts/test-foundry/` as the spike location.
-Foundry's `test` config keys to a single directory, so the file lives under
-`test/endure/venus/` (its Stage-B-final location per spec section "Test
-porting strategy"). The spec's `test-foundry/` convention was tactical
-scaffolding that turned out to be unnecessary.
-
-### 6.6 Configuration deviations introduced by Stage A
-
-- `foundry.toml` now uses `auto_detect_solc = true` (transitional;
-  Stage B Chunk 5b reverts to pinned `solc_version = "0.8.25"` once
-  Moonwell is removed). `evm_version` bumped from `shanghai` to `cancun`.
-- `remappings.txt` adds `@openzeppelin/contracts-upgradeable/` and
-  `@openzeppelin/contracts/` as more-specific entries than the existing
-  `@openzeppelin/=lib/openzeppelin-contracts/`, so Solidity's
-  longest-prefix-wins rule routes Moonwell's `@openzeppelin-contracts/...`
-  imports and Venus's `@openzeppelin/contracts/...` imports correctly.
-  Adds 5 `@venusprotocol/*` remappings.
-- `packages/contracts/.gitignore` (new file) ignores Hardhat byproducts
-    (`artifacts/`, `cache_hardhat/`, `deployments/localhost/`,
-    `deployments/hardhat/`) in anticipation of Stage B Chunk 1.
-
-### 6.7 `lib/venusprotocol-*` package git commit SHAs
-
-The 5 `@venusprotocol/*` packages vendored in `lib/` were extracted from
-Venus Protocol's `node_modules/` at commit
-`6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`). The
-exact npm versions are pinned by Venus's `yarn.lock` at that commit.
-
-Each npm version maps to a release commit in its respective VenusProtocol
-GitHub repository:
-
-| Vendored directory | npm package | Version | Git repo | Commit SHA |
-|--------------------|-------------|---------|----------|------------|
-| `lib/venusprotocol-governance-contracts/` | `@venusprotocol/governance-contracts` | `2.13.0` | `VenusProtocol/governance-contracts` | `f8d3efe9578c8cd11330181bb4396f6b449e654c` |
-| `lib/venusprotocol-oracle/` | `@venusprotocol/oracle` | `2.10.0` | `VenusProtocol/oracle` | `c4bd1d95b5989c8f8938812471ab715df77c6b1e` |
-| `lib/venusprotocol-protocol-reserve/` | `@venusprotocol/protocol-reserve` | `3.4.0` | `VenusProtocol/protocol-reserve` | `80c53be90a70d9d4704efa33876dc77c0f48f8b2` |
-| `lib/venusprotocol-solidity-utilities/` | `@venusprotocol/solidity-utilities` | `2.1.0` | `VenusProtocol/solidity-utilities` | `d891bec6e60338132994560b9d47f2865ee33e0d` |
-| `lib/venusprotocol-token-bridge/` | `@venusprotocol/token-bridge` | `2.7.0` | `VenusProtocol/token-bridge` | `845a6fa27a0fde98ce6ad621f2340b247d23c866` |
-
-**Lock file**: Venus uses `yarn.lock` (Yarn Berry / PnP). All 5 packages
-resolve to exact versions listed above. No `package-lock.json` is present.
-
-**Verification method**: For each package, the git tag `v<version>` in the
-corresponding GitHub repo points to a lightweight tag whose commit message
-is `chore(release): <version> [skip ci]`. Byte-identity of vendored
-`contracts/` trees against `node_modules/@venusprotocol/<pkg>/contracts/`
-at the pinned Venus commit is enforced by the Stance B audit posture
-documented in each package's `VENDOR.md`.
+## 7. Stance B Audit Posture
+To verify byte-identity:
+1. Identify the file in `src/`.
+2. Locate the corresponding file in the `VenusProtocol/venus-protocol` repository at the pinned commit.
+3. Compute the SHA-256 hash of both files.
+4. If the hashes match, byte-identity is confirmed.
