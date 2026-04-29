@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-// NOTE: EndureDeployHelper does not exist yet — this import will fail (TDD RED)
 import {EndureDeployHelper} from "../../helper/EndureDeployHelper.sol";
 
 import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";

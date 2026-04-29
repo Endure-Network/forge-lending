@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Script} from "@forge-std/Script.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 
 contract DeployLocal is Script {
     function run() external {
@@ -11,8 +11,8 @@ contract DeployLocal is Script {
         uint256 pk = vm.envOr("PRIVATE_KEY", uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80));
         vm.startBroadcast(pk);
 
-        EndureDeployHelperVenus helper = new EndureDeployHelperVenus();
-        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
+        EndureDeployHelper helper = new EndureDeployHelper();
+        EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         vm.stopBroadcast();
 
