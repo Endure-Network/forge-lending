@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/Utils/SafeMath.sol";
+import "../../Utils/SafeMath.sol";
 
 // Mock import
 import { GovernorBravoDelegate } from "@venusprotocol/governance-contracts/contracts/Governance/GovernorBravoDelegate.sol";

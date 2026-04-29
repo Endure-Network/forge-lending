@@ -3,10 +3,10 @@ pragma solidity 0.8.25;
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { ComptrollerInterface } from "../../venus-staging/Comptroller/ComptrollerInterface.sol";
-import { VToken } from "../../venus-staging/Tokens/VTokens/VToken.sol";
-import { InterestRateModelV8 } from "../../venus-staging/InterestRateModels/InterestRateModelV8.sol";
-import { VBep20Interface, VTokenInterface } from "../../venus-staging/Tokens/VTokens/VTokenInterfaces.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { VToken } from "../../Tokens/VTokens/VToken.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { VBep20Interface, VTokenInterface } from "../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title Venus's VBep20 Contract

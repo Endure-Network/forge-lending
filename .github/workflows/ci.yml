@@ -64,7 +64,7 @@ jobs:
           git clone --filter=blob:none https://github.com/VenusProtocol/venus-protocol.git /tmp/upstream
           cd /tmp/upstream
           git checkout ${{ steps.sha.outputs.UPSTREAM_SHA }}
-      - name: Compare venus-staging against upstream contracts/
+      - name: Compare vendored src/ against upstream contracts/
         run: |
           set -e
           LOCAL=$GITHUB_WORKSPACE/packages/contracts
@@ -87,8 +87,8 @@ jobs:
             REL=${f#$LOCAL/}
             if [[ "$REL" == src/endure/* ]]; then continue; fi
             if [[ "$REL" == src/test-helpers/venus/* ]]; then continue; fi
-            if [[ "$REL" == src/venus-staging/* ]]; then
-              UPSTREAM_REL="contracts/${REL#src/venus-staging/}"
+            if [[ "$REL" == src/* ]]; then
+              UPSTREAM_REL="contracts/${REL#src/}"
             else
               continue
             fi

@@ -1,8 +1,8 @@
 pragma solidity 0.8.25;
 
-import { InterestRateModelV8 } from "../../venus-staging/InterestRateModels/InterestRateModelV8.sol";
-import { ComptrollerInterface } from "../../venus-staging/Comptroller/ComptrollerInterface.sol";
-import { VTokenInterface, VBep20Interface, VDelegatorInterface } from "../../venus-staging/Tokens/VTokens/VTokenInterfaces.sol";
+import { InterestRateModelV8 } from "../../InterestRateModels/InterestRateModelV8.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { VTokenInterface, VBep20Interface, VDelegatorInterface } from "../../Tokens/VTokens/VTokenInterfaces.sol";
 
 /**
  * @title Venus's VBep20Delegator Contract

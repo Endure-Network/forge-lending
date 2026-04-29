@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import {Unitroller} from "@protocol/venus-staging/Comptroller/Unitroller.sol";
-import {VToken} from "@protocol/venus-staging/Tokens/VTokens/VToken.sol";
-import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
-import {ComptrollerInterface} from "@protocol/venus-staging/Comptroller/ComptrollerInterface.sol";
-import {ComptrollerLensInterface} from "@protocol/venus-staging/Comptroller/ComptrollerLensInterface.sol";
-import {Diamond} from "@protocol/venus-staging/Comptroller/Diamond/Diamond.sol";
-import {IDiamondCut} from "@protocol/venus-staging/Comptroller/Diamond/interfaces/IDiamondCut.sol";
-import {MarketFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/MarketFacet.sol";
-import {PolicyFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/PolicyFacet.sol";
-import {SetterFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/SetterFacet.sol";
-import {RewardFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/RewardFacet.sol";
-import {ComptrollerLens} from "@protocol/venus-staging/Lens/ComptrollerLens.sol";
-import {InterestRateModelV8} from "@protocol/venus-staging/InterestRateModels/InterestRateModelV8.sol";
-import {TwoKinksInterestRateModel} from "@protocol/venus-staging/InterestRateModels/TwoKinksInterestRateModel.sol";
+import {Unitroller} from "@protocol/Comptroller/Unitroller.sol";
+import {VToken} from "@protocol/Tokens/VTokens/VToken.sol";
+import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
+import {ComptrollerInterface} from "@protocol/Comptroller/ComptrollerInterface.sol";
+import {ComptrollerLensInterface} from "@protocol/Comptroller/ComptrollerLensInterface.sol";
+import {Diamond} from "@protocol/Comptroller/Diamond/Diamond.sol";
+import {IDiamondCut} from "@protocol/Comptroller/Diamond/interfaces/IDiamondCut.sol";
+import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
+import {PolicyFacet} from "@protocol/Comptroller/Diamond/facets/PolicyFacet.sol";
+import {SetterFacet} from "@protocol/Comptroller/Diamond/facets/SetterFacet.sol";
+import {RewardFacet} from "@protocol/Comptroller/Diamond/facets/RewardFacet.sol";
+import {ComptrollerLens} from "@protocol/Lens/ComptrollerLens.sol";
+import {InterestRateModelV8} from "@protocol/InterestRateModels/InterestRateModelV8.sol";
+import {TwoKinksInterestRateModel} from "@protocol/InterestRateModels/TwoKinksInterestRateModel.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";

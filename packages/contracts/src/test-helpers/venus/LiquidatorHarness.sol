@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Liquidator/Liquidator.sol";
+import "../../Liquidator/Liquidator.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 contract LiquidatorHarness is Liquidator {

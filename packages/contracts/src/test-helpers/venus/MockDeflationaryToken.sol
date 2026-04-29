@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/Utils/SafeMath.sol";
+import "../../Utils/SafeMath.sol";
 
 contract DeflatingERC20 {
     using SafeMath for uint;

@@ -5,7 +5,7 @@ import {StdInvariant} from "@forge-std/StdInvariant.sol";
 import {Test} from "@forge-std/Test.sol";
 import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
 import {EndureHandler} from "./handlers/EndureHandler.sol";
-import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
+import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
 
 contract InvariantSolvencyTest is StdInvariant, Test {

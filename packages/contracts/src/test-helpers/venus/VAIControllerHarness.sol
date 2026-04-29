@@ -1,6 +1,6 @@
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Tokens/VAI/VAIController.sol";
+import "../../Tokens/VAI/VAIController.sol";
 
 contract VAIControllerHarness is VAIController {
     uint public blockNumber;

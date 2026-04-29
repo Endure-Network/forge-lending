@@ -1,11 +1,11 @@
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Comptroller/Diamond/facets/MarketFacet.sol";
-import "../../venus-staging/Comptroller/Diamond/facets/PolicyFacet.sol";
-import "../../venus-staging/Comptroller/Diamond/facets/RewardFacet.sol";
-import "../../venus-staging/Comptroller/Diamond/facets/SetterFacet.sol";
-import "../../venus-staging/Comptroller/Diamond/facets/FlashLoanFacet.sol";
-import "../../venus-staging/Comptroller/Unitroller.sol";
+import "../../Comptroller/Diamond/facets/MarketFacet.sol";
+import "../../Comptroller/Diamond/facets/PolicyFacet.sol";
+import "../../Comptroller/Diamond/facets/RewardFacet.sol";
+import "../../Comptroller/Diamond/facets/SetterFacet.sol";
+import "../../Comptroller/Diamond/facets/FlashLoanFacet.sol";
+import "../../Comptroller/Unitroller.sol";
 
 // This contract contains all methods of Comptroller implementation in different facets at one place for testing purpose
 // This contract does not have diamond functionality(i.e delegate call to facets methods)

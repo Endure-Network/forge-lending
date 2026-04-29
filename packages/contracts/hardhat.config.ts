@@ -29,6 +29,15 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
+        version: "0.8.19",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+        },
+      },
+      {
         version: "0.8.25",
         settings: {
           optimizer: {
@@ -55,9 +64,7 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    // During staging period (pre-T46): sources at venus-staging/
-    // T46 (Commit B1) flips this to "./src" after mass-move
-    sources: "./src/venus-staging",
+    sources: "./src",
     tests: "./tests/hardhat",
     deploy: "./deploy",
     deployments: "./deployments",

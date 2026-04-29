@@ -1,7 +1,7 @@
 pragma solidity 0.8.25;
 
 import { ResilientOracleInterface } from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
-import "../../venus-staging/Tokens/VTokens/VBep20.sol";
+import "../../Tokens/VTokens/VBep20.sol";
 
 contract SimplePriceOracle is ResilientOracleInterface {
     mapping(address => uint) internal prices;

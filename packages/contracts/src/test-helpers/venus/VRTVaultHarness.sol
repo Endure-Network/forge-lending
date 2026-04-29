@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/VRTVault/VRTVault.sol";
+import "../../VRTVault/VRTVault.sol";
 
 contract VRTVaultHarness is VRTVault {
     uint public blockNumber;

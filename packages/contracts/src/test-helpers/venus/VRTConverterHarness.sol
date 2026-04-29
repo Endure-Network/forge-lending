@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/Tokens/VRT/VRTConverter.sol";
+import "../../Tokens/VRT/VRTConverter.sol";
 
 contract VRTConverterHarness is VRTConverter {
     constructor() public VRTConverter() {

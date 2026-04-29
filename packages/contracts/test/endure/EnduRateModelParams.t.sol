@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
 import {EnduRateModelParamsVenus} from "@protocol/endure/EnduRateModelParams.sol";
-import {TwoKinksInterestRateModel} from "@protocol/venus-staging/InterestRateModels/TwoKinksInterestRateModel.sol";
+import {TwoKinksInterestRateModel} from "@protocol/InterestRateModels/TwoKinksInterestRateModel.sol";
 
 contract EnduRateModelParamsTest is Test {
     /// @notice Verify TwoKinksInterestRateModel constructs with Venus 8-param int256 shape.

@@ -1,10 +1,10 @@
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Tokens/VTokens/VBep20Immutable.sol";
-import "../../venus-staging/Tokens/VTokens/VBep20Delegator.sol";
-import "../../venus-staging/Tokens/VTokens/VBep20Delegate.sol";
+import "../../Tokens/VTokens/VBep20Immutable.sol";
+import "../../Tokens/VTokens/VBep20Delegator.sol";
+import "../../Tokens/VTokens/VBep20Delegate.sol";
 import "./ComptrollerScenario.sol";
-import "../../venus-staging/Comptroller/ComptrollerInterface.sol";
+import "../../Comptroller/ComptrollerInterface.sol";
 
 contract VBep20Scenario is VBep20Immutable {
     constructor(

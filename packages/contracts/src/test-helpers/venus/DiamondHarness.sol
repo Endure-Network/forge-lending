@@ -1,6 +1,6 @@
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Comptroller/Diamond/Diamond.sol";
+import "../../Comptroller/Diamond/Diamond.sol";
 
 contract DiamondHarness is Diamond {
     function getFacetAddress(bytes4 sig) public view returns (address) {

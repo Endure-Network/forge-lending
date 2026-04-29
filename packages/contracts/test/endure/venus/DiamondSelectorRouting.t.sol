@@ -5,11 +5,11 @@ import {Test} from "@forge-std/Test.sol";
 // NOTE: EndureDeployHelperVenus does not exist yet — this import will fail (TDD RED)
 import {EndureDeployHelperVenus} from "../../helper/EndureDeployHelperVenus.sol";
 
-import {MarketFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/MarketFacet.sol";
-import {PolicyFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/PolicyFacet.sol";
-import {SetterFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/SetterFacet.sol";
-import {RewardFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/RewardFacet.sol";
-import {Diamond} from "@protocol/venus-staging/Comptroller/Diamond/Diamond.sol";
+import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
+import {PolicyFacet} from "@protocol/Comptroller/Diamond/facets/PolicyFacet.sol";
+import {SetterFacet} from "@protocol/Comptroller/Diamond/facets/SetterFacet.sol";
+import {RewardFacet} from "@protocol/Comptroller/Diamond/facets/RewardFacet.sol";
+import {Diamond} from "@protocol/Comptroller/Diamond/Diamond.sol";
 
 contract DiamondSelectorRoutingTest is Test {
     EndureDeployHelperVenus helper;

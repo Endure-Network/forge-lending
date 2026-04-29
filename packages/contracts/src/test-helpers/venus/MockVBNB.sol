@@ -1,6 +1,6 @@
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Tokens/VTokens/VToken.sol";
+import "../../Tokens/VTokens/VToken.sol";
 
 /**
  * @title Venus's vBNB Contract

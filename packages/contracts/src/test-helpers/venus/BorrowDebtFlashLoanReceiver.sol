@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "./MockFlashLoanReceiver.sol";
-import { ComptrollerInterface } from "../../venus-staging/Comptroller/ComptrollerInterface.sol";
-import { VToken } from "../../venus-staging/Tokens/VTokens/VToken.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { VToken } from "../../Tokens/VTokens/VToken.sol";
 
 contract BorrowDebtFlashLoanReceiver is MockFlashLoanReceiver {
     constructor(ComptrollerInterface comptroller) MockFlashLoanReceiver(comptroller) {}

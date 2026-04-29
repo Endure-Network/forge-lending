@@ -2,9 +2,9 @@
 pragma solidity 0.8.25;
 
 import { FlashLoanReceiverBase } from "./FlashLoanReceiverBase.sol";
-import { ComptrollerInterface } from "../../venus-staging/Comptroller/ComptrollerInterface.sol";
-import { VToken } from "../../venus-staging/Tokens/VTokens/VToken.sol";
-import { IERC20NonStandard } from "../../venus-staging/Tokens/test/IERC20NonStandard.sol";
+import { ComptrollerInterface } from "../../Comptroller/ComptrollerInterface.sol";
+import { VToken } from "../../Tokens/VTokens/VToken.sol";
+import { IERC20NonStandard } from "../../Tokens/test/IERC20NonStandard.sol";
 
 /// @title MockFlashLoanReceiver
 /// @notice A mock implementation of a flashLoan receiver contract that interacts with the Comptroller to request and handle flash loans.

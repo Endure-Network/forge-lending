@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 pragma solidity 0.8.25;
 
-import "../../venus-staging/Tokens/Prime/Prime.sol";
+import "../../Tokens/Prime/Prime.sol";
 
 contract PrimeScenario is Prime {
     /// @custom:oz-upgrades-unsafe-allow constructor

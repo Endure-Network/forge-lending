@@ -1,7 +1,7 @@
 pragma solidity 0.8.25;
 
 import "./ComptrollerMock.sol";
-import "../../venus-staging/Comptroller/Unitroller.sol";
+import "../../Comptroller/Unitroller.sol";
 
 contract ComptrollerHarness is ComptrollerMock {
     address internal xvsAddress;

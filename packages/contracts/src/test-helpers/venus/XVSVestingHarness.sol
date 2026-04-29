@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/Tokens/XVS/XVSVesting.sol";
+import "../../Tokens/XVS/XVSVesting.sol";
 
 contract XVSVestingHarness is XVSVesting {
     address public constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;

@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
 import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
-import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
+import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 
 contract SeedDepositTest is Test {
     EndureDeployHelperVenus helper;

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../../venus-staging/XVSVault/XVSVault.sol";
+import "../../XVSVault/XVSVault.sol";
 
 contract XVSVaultScenario is XVSVault {
     using SafeMath for uint256;

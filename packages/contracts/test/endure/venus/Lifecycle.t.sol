@@ -3,21 +3,21 @@ pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
 
-import {Unitroller} from "@protocol/venus-staging/Comptroller/Unitroller.sol";
-import {Diamond} from "@protocol/venus-staging/Comptroller/Diamond/Diamond.sol";
-import {IDiamondCut} from "@protocol/venus-staging/Comptroller/Diamond/interfaces/IDiamondCut.sol";
-import {MarketFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/MarketFacet.sol";
-import {PolicyFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/PolicyFacet.sol";
-import {SetterFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/SetterFacet.sol";
-import {RewardFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/RewardFacet.sol";
-import {ComptrollerLens} from "@protocol/venus-staging/Lens/ComptrollerLens.sol";
-import {ComptrollerLensInterface} from "@protocol/venus-staging/Comptroller/ComptrollerLensInterface.sol";
-import {ComptrollerInterface} from "@protocol/venus-staging/Comptroller/ComptrollerInterface.sol";
+import {Unitroller} from "@protocol/Comptroller/Unitroller.sol";
+import {Diamond} from "@protocol/Comptroller/Diamond/Diamond.sol";
+import {IDiamondCut} from "@protocol/Comptroller/Diamond/interfaces/IDiamondCut.sol";
+import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
+import {PolicyFacet} from "@protocol/Comptroller/Diamond/facets/PolicyFacet.sol";
+import {SetterFacet} from "@protocol/Comptroller/Diamond/facets/SetterFacet.sol";
+import {RewardFacet} from "@protocol/Comptroller/Diamond/facets/RewardFacet.sol";
+import {ComptrollerLens} from "@protocol/Lens/ComptrollerLens.sol";
+import {ComptrollerLensInterface} from "@protocol/Comptroller/ComptrollerLensInterface.sol";
+import {ComptrollerInterface} from "@protocol/Comptroller/ComptrollerInterface.sol";
 
-import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
-import {VToken} from "@protocol/venus-staging/Tokens/VTokens/VToken.sol";
-import {InterestRateModelV8} from "@protocol/venus-staging/InterestRateModels/InterestRateModelV8.sol";
-import {TwoKinksInterestRateModel} from "@protocol/venus-staging/InterestRateModels/TwoKinksInterestRateModel.sol";
+import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
+import {VToken} from "@protocol/Tokens/VTokens/VToken.sol";
+import {InterestRateModelV8} from "@protocol/InterestRateModels/InterestRateModelV8.sol";
+import {TwoKinksInterestRateModel} from "@protocol/InterestRateModels/TwoKinksInterestRateModel.sol";
 import {MockToken} from "@protocol/test-helpers/venus/MockToken.sol";
 
 import {ResilientOracleInterface} from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";

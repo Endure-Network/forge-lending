@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "../../venus-staging/Tokens/VAI/VAI.sol";
+import "../../Tokens/VAI/VAI.sol";
 
 contract VAIScenario is VAI {
     uint internal blockNumber = 100000;

@@ -3,10 +3,10 @@ pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
 import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
-import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
-import {VToken} from "@protocol/venus-staging/Tokens/VTokens/VToken.sol";
-import {MarketFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/MarketFacet.sol";
-import {SetterFacet} from "@protocol/venus-staging/Comptroller/Diamond/facets/SetterFacet.sol";
+import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
+import {VToken} from "@protocol/Tokens/VTokens/VToken.sol";
+import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
+import {SetterFacet} from "@protocol/Comptroller/Diamond/facets/SetterFacet.sol";
 import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";
 import {WTAO} from "@protocol/endure/WTAO.sol";
 
