@@ -20,3 +20,7 @@ CI enforcement: `scripts/check-test-mapping.sh` fails if any deleted test path l
 | *(net-new)* | borrowCap=max → unlimited; borrowCap=0 → disabled | test/endure/venus/BorrowCapSemantics.t.sol | Venus cap=0 disables (differs from Compound) |
 | *(net-new)* | Reward enable via Diamond proxy + claimVenus e2e | test/endure/venus/RewardFacetEnable.t.sol | Requires MockXVS.sol |
 | test/endure/venus/VenusDirectLiquidationSpike.t.sol | Stage A spike: selectors, lifecycle, direct liquidation | test/endure/venus/Lifecycle.t.sol (renamed) | Redundant tests removed; 5 core tests kept |
+| test/unit/Comptroller.t.sol | Monolithic Comptroller unit tests | test/endure/venus/DiamondSelectorRouting.t.sol, test/endure/Deploy.t.sol, test/endure/venus/CollateralFactorOrdering.t.sol | Venus Diamond replaces monolithic Comptroller |
+| test/unit/MErc20.t.sol | MErc20 token unit tests | test/endure/integration/Lifecycle.t.sol, test/endure/integration/AliceLifecycle.t.sol | VBep20Immutable replaces MErc20 |
+| test/unit/MErc20Delegate.t.sol | MErc20Delegate upgrade pattern tests | NOT APPLICABLE | Venus uses VBep20Immutable — no delegate pattern |
+| test/unit/Oracle.t.sol | ChainlinkCompositeOracle unit tests | test/endure/integration/Lifecycle.t.sol (oracle reads exercised) | ChainlinkCompositeOracle removed; Venus uses ResilientOracleInterface; Endure uses MockResilientOracle |
