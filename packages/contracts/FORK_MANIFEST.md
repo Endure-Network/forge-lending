@@ -9,8 +9,10 @@ the Moonwell tree.
 - **Phase 0 (deployed)**: `moonwell-fi/moonwell-contracts-v2` @ `8d5fb1107babf7935cfabc2f6ecdb1722547f085`
 - **Phase 0.5 staged (not deployed)**: `VenusProtocol/venus-protocol` @ `6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`)
 
-Sections 1-5 below cover Phase 0 (Moonwell) audit trail. Section 6 covers
-the Phase 0.5 (Venus) staging state.
+Sections 1-5 below cover the archived Phase 0 (Moonwell) audit trail. The
+Moonwell chassis was deleted in Chunk 5b Commit A; these sections remain only
+as historical documentation. Section 6 covers the Phase 0.5 (Venus) staging
+state.
 
 ## 1. Deleted Files (Strip Manifest)
 - `src/governance/TemporalGovernor.sol` — cross-chain governance; Endure is single-chain
