@@ -25,27 +25,18 @@ import {ResilientOracleInterface} from "@venusprotocol/oracle/contracts/interfac
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
 import {AllowAllAccessControlManager} from "@protocol/endure/AllowAllAccessControlManager.sol";
 
-/// @title VenusDirectLiquidationSpikeTest
-/// @notice Phase 0.5 Stage A tightened spike. Closes the 5 partial gates the
-///         external spike left open (lifecycle through Unitroller-routed Diamond,
-///         ResilientOracle mock, full repay+redeem, LT<CF rejection, real ACM
-///         interface), and preserves the 2 GREEN gates from the external spike
-///         (selector registration, direct vToken liquidation with
-///         liquidatorContract == address(0)).
+/// @title VenusLifecycleTest
+/// @notice Core Venus lifecycle verification through standalone Diamond setup.
+///         Retained from original Stage A spike, minus redundant tests now covered
+///         by AliceLifecycle (T14), Liquidation (T15), and CollateralFactorOrdering (T21).
 ///
-///         Reference: docs/briefs/phase-0.5-venus-rebase-spec.md, sections
-///         "Stage A re-verdict" and "Task 0: Tightened Stage A".
-///
-/// @dev Hard gates closed by each test:
-///         test_DiamondRegistersRequiredCoreSelectors          → Gate 3
-///         test_VBep20MarketsDeployAgainstUnitrollerProxy      → Gates 2, 5
-///         test_ResilientOracleMockSatisfiesPriceReads         → Gate 4
-///         test_FullLifecycleSupplyBorrowRepayRedeem           → Gate 6
-///         test_DirectVTokenLiquidationWorksWhenLiquidatorContractUnset → Gate 7
-///         test_SetCollateralFactorRejectsLTBelowCF            → Gate 8
-///         test_DiamondRoutesLifecycleThroughUnitroller        → Gate 2 (lifecycle, not just selectors)
-///         Gate 1 (Foundry compile) is implicitly proven by this file compiling.
-contract VenusDirectLiquidationSpikeTest is Test {
+/// @dev Remaining gates:
+///         test_DiamondRegistersRequiredCoreSelectors          → Gate 3 (selector routing)
+///         test_VBep20MarketsDeployAgainstUnitrollerProxy      → Gates 2, 5 (market deploy)
+///         test_ResilientOracleMockSatisfiesPriceReads         → Gate 4 (oracle interface)
+///         test_FullLifecycleSupplyBorrowRepayRedeem           → Gate 6 (full lifecycle)
+///         test_DirectVTokenLiquidationWorksWhenLiquidatorContractUnset → Gate 7 (direct liquidation)
+contract VenusLifecycleTest is Test {
     // ─── Diamond plumbing ─────────────────────────────────────────────────────
     Unitroller internal unitroller;
     Diamond internal diamondImpl;
@@ -434,24 +425,6 @@ contract VenusDirectLiquidationSpikeTest is Test {
         vm.stopPrank();
     }
 
-    /// @notice Gate 2 (lifecycle): Same as Gate 6 but explicitly proves the
-    ///         Diamond is the dispatch surface — every comptroller-side call
-    ///         must succeed via the unitroller-cast facet interfaces.
-    function test_DiamondRoutesLifecycleThroughUnitroller() public {
-        vm.startPrank(alice);
-        alpha.faucet(50e18);
-        alpha.approve(address(vAlpha), type(uint256).max);
-        assertEq(vAlpha.mint(50e18), 0, "mint must succeed via diamond mintAllowed");
-
-        address[] memory entered = new address[](1);
-        entered[0] = address(vAlpha);
-        uint256[] memory results = MarketFacet(address(unitroller)).enterMarkets(entered);
-        assertEq(results[0], 0, "enterMarkets must succeed via diamond marketFacet");
-
-        assertEq(vWTAO.borrow(5e18), 0, "borrow must succeed via diamond borrowAllowed");
-        vm.stopPrank();
-    }
-
     /// @notice Gate 7 (preserved): Direct vToken liquidation succeeds while
     ///         liquidatorContract == address(0). PolicyFacet.liquidateBorrowAllowed
     ///         only restricts callers when liquidatorContract is set.
@@ -482,26 +455,6 @@ contract VenusDirectLiquidationSpikeTest is Test {
         vm.stopPrank();
 
         assertGt(vAlpha.balanceOf(bob), 0, "bob did not receive seized vAlpha");
-    }
-
-    /// @notice Gate 8: setCollateralFactor rejects LT < CF. Venus uses Compound's
-    ///         soft-failure pattern (return non-zero error code, do not revert)
-    ///         for this validation, so the assertion is on a non-zero return,
-    ///         not on a revert. The mutation must also be a no-op: vAlpha's
-    ///         existing CF/LT must remain unchanged (0.25e18 / 0.35e18).
-    function test_SetCollateralFactorRejectsLTBelowCF() public {
-        SetterFacet sf = SetterFacet(address(unitroller));
-
-        uint256 oldCf = _markets_collateralFactor(address(vAlpha));
-        uint256 oldLt = _markets_liquidationThreshold(address(vAlpha));
-        assertEq(oldCf, CF_ALPHA, "precondition: CF");
-        assertEq(oldLt, LT_ALPHA, "precondition: LT");
-
-        uint256 err = sf.setCollateralFactor(VToken(address(vAlpha)), 0.6e18, 0.5e18);
-        assertGt(err, 0, "setCollateralFactor must return non-zero error when LT < CF");
-
-        assertEq(_markets_collateralFactor(address(vAlpha)), oldCf, "CF must not mutate");
-        assertEq(_markets_liquidationThreshold(address(vAlpha)), oldLt, "LT must not mutate");
     }
 
     // ─── Internal helpers ─────────────────────────────────────────────────────
