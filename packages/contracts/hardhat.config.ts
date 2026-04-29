@@ -1,4 +1,6 @@
-import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@typechain/hardhat";
 import "hardhat-deploy";
 import { HardhatUserConfig } from "hardhat/config";
 
@@ -32,8 +34,14 @@ const config: HardhatUserConfig = {
     },
   },
   paths: {
-    tests: "tests/hardhat",
-    deployments: "deployments",
+    // During staging period (pre-T46): sources at venus-staging/
+    // T46 (Commit B1) flips this to "./src" after mass-move
+    sources: "./src/venus-staging",
+    tests: "./tests/hardhat",
+    deploy: "./deploy",
+    deployments: "./deployments",
+    cache: "./cache_hardhat",
+    artifacts: "./artifacts",
   },
   namedAccounts: {
     deployer: 0,
