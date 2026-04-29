@@ -4,3 +4,7 @@ cache_hardhat/
 deployments/localhost/
 deployments/hardhat/
 typechain-types/
+# `typechain` is a symlink alias to `typechain-types`, recreated by scripts/link-hardhat-libs.sh
+# (runs at `pnpm install` postinstall). Vendored Venus tests import from `../../typechain`
+# (legacy convention) while @typechain/hardhat generates into typechain-types/.
+typechain

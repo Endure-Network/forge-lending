@@ -20,3 +20,14 @@ for oz in contracts contracts-upgradeable; do
   [ -L "$link" ] && rm "$link"
   [ -d "$target" ] && ln -s "../../lib/openzeppelin-${oz}/contracts" "$link"
 done
+
+# Vendored Venus Hardhat tests import from `../../../typechain` (legacy Venus convention),
+# but @typechain/hardhat generates into `typechain-types/` (modern convention).
+# A symlink `typechain -> typechain-types` reconciles both without patching ~50 vendored test files
+# (preserves Stance B byte-identity). The symlink may dangle until `hardhat compile` runs;
+# that is acceptable because tests always require a prior compile.
+typechain_link="$PKG_DIR/typechain"
+if [ -L "$typechain_link" ] || [ -e "$typechain_link" ]; then
+  rm -rf "$typechain_link"
+fi
+ln -s typechain-types "$typechain_link"
