@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 import {Test} from "@forge-std/Test.sol";
 import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";
 import {MockAlpha64} from "@protocol/endure/MockAlpha64.sol";
