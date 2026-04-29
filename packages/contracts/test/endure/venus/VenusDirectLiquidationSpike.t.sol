@@ -18,7 +18,7 @@ import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immu
 import {VToken} from "@protocol/venus-staging/Tokens/VTokens/VToken.sol";
 import {InterestRateModelV8} from "@protocol/venus-staging/InterestRateModels/InterestRateModelV8.sol";
 import {TwoKinksInterestRateModel} from "@protocol/venus-staging/InterestRateModels/TwoKinksInterestRateModel.sol";
-import {MockToken} from "@protocol/venus-staging/test/MockToken.sol";
+import {MockToken} from "@protocol/test-helpers/venus/MockToken.sol";
 
 import {ResilientOracleInterface} from "@venusprotocol/oracle/contracts/interfaces/OracleInterface.sol";
 
