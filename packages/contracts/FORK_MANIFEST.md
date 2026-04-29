@@ -144,21 +144,22 @@ pinned commit. Stance B byte-identity audit posture: every file under
 `<venus>/contracts/<same-relative-path>`. Sample verification confirmed for
 `src/venus-staging/Comptroller/Diamond/Diamond.sol` (SHA-256 match).
 
-### 6.2 Three harness files NOT vendored (Stage A deviation)
+### 6.2 Three harness files re-vendored with import path patches
 
-The following Venus upstream files exist at `<venus>/contracts/test/` but
-were NOT copied into `src/venus-staging/test/` because their relative
-imports (`../../contracts/...`) only resolve under Hardhat, where the source
-root is the Venus repo root, not the `contracts/` subtree:
+The following 3 harness files were re-vendored from Venus upstream at commit
+`6400a067114a101bd3bebfca2a4bd06480e84831` into `src/test-helpers/venus/`
+with single-line import path patches. The logic is byte-identical to
+upstream; only the import path changed to resolve under Endure's layout.
 
-- `contracts/test/VRTConverterHarness.sol`
-- `contracts/test/VRTVaultHarness.sol`
-- `contracts/test/XVSVestingHarness.sol`
+| File | Original import (upstream) | Patched import (Endure) | Rationale |
+|------|---------------------------|------------------------|-----------|
+| `src/test-helpers/venus/VRTConverterHarness.sol` | `../../contracts/Tokens/VRT/VRTConverter.sol` | `../../venus-staging/Tokens/VRT/VRTConverter.sol` | Upstream path assumes Venus repo root; patched for `src/venus-staging/` layout |
+| `src/test-helpers/venus/VRTVaultHarness.sol` | `../../contracts/VRTVault/VRTVault.sol` | `../../venus-staging/VRTVault/VRTVault.sol` | Same |
+| `src/test-helpers/venus/XVSVestingHarness.sol` | `../../contracts/Tokens/XVS/XVSVesting.sol` | `../../venus-staging/Tokens/XVS/XVSVesting.sol` | Same |
 
 All three are pragma `^0.5.16` legacy test infrastructure for VRT/XVS
-Vesting — features that are out-of-Endure-scope. They will be re-vendored
-in Stage B Chunk 4 when the Hardhat side-by-side toolchain lands and
-relative-path resolution will work as upstream intends.
+Vesting. They compile cleanly under both `forge build` and
+`hardhat compile`.
 
 ### 6.3 Venus external dependencies vendored at `lib/venusprotocol-*/`
 
@@ -220,5 +221,33 @@ scaffolding that turned out to be unnecessary.
   imports and Venus's `@openzeppelin/contracts/...` imports correctly.
   Adds 5 `@venusprotocol/*` remappings.
 - `packages/contracts/.gitignore` (new file) ignores Hardhat byproducts
-  (`artifacts/`, `cache_hardhat/`, `deployments/localhost/`,
-  `deployments/hardhat/`) in anticipation of Stage B Chunk 1.
+    (`artifacts/`, `cache_hardhat/`, `deployments/localhost/`,
+    `deployments/hardhat/`) in anticipation of Stage B Chunk 1.
+
+### 6.7 `lib/venusprotocol-*` package git commit SHAs
+
+The 5 `@venusprotocol/*` packages vendored in `lib/` were extracted from
+Venus Protocol's `node_modules/` at commit
+`6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`). The
+exact npm versions are pinned by Venus's `yarn.lock` at that commit.
+
+Each npm version maps to a release commit in its respective VenusProtocol
+GitHub repository:
+
+| Vendored directory | npm package | Version | Git repo | Commit SHA |
+|--------------------|-------------|---------|----------|------------|
+| `lib/venusprotocol-governance-contracts/` | `@venusprotocol/governance-contracts` | `2.13.0` | `VenusProtocol/governance-contracts` | `f8d3efe9578c8cd11330181bb4396f6b449e654c` |
+| `lib/venusprotocol-oracle/` | `@venusprotocol/oracle` | `2.10.0` | `VenusProtocol/oracle` | `c4bd1d95b5989c8f8938812471ab715df77c6b1e` |
+| `lib/venusprotocol-protocol-reserve/` | `@venusprotocol/protocol-reserve` | `3.4.0` | `VenusProtocol/protocol-reserve` | `80c53be90a70d9d4704efa33876dc77c0f48f8b2` |
+| `lib/venusprotocol-solidity-utilities/` | `@venusprotocol/solidity-utilities` | `2.1.0` | `VenusProtocol/solidity-utilities` | `d891bec6e60338132994560b9d47f2865ee33e0d` |
+| `lib/venusprotocol-token-bridge/` | `@venusprotocol/token-bridge` | `2.7.0` | `VenusProtocol/token-bridge` | `845a6fa27a0fde98ce6ad621f2340b247d23c866` |
+
+**Lock file**: Venus uses `yarn.lock` (Yarn Berry / PnP). All 5 packages
+resolve to exact versions listed above. No `package-lock.json` is present.
+
+**Verification method**: For each package, the git tag `v<version>` in the
+corresponding GitHub repo points to a lightweight tag whose commit message
+is `chore(release): <version> [skip ci]`. Byte-identity of vendored
+`contracts/` trees against `node_modules/@venusprotocol/<pkg>/contracts/`
+at the pinned Venus commit is enforced by the Stance B audit posture
+documented in each package's `VENDOR.md`.
