@@ -1,109 +1,39 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 
 import {Script} from "@forge-std/Script.sol";
-import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
-import {EndureRoles} from "@protocol/endure/EndureRoles.sol";
+import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
 
-contract DeployLocal is Script, EndureDeployHelper {
+contract DeployLocal is Script {
     function run() external {
         require(block.chainid == 31337, "DeployLocal: chainId != anvil");
 
-        address deployer = msg.sender;
+        uint256 pk = vm.envOr("PRIVATE_KEY", uint256(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80));
+        vm.startBroadcast(pk);
 
-        EndureRoles.RoleSet memory roles = EndureRoles.RoleSet({
-            admin: vm.envOr("ADMIN_EOA", deployer),
-            pauseGuardian: vm.envOr("PAUSE_GUARDIAN_EOA", deployer),
-            borrowCapGuardian: vm.envOr("BORROW_CAP_GUARDIAN_EOA", deployer),
-            supplyCapGuardian: vm.envOr("SUPPLY_CAP_GUARDIAN_EOA", deployer)
-        });
+        EndureDeployHelperVenus helper = new EndureDeployHelperVenus();
+        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
 
-        require(
-            roles.admin == deployer,
-            "Phase 0 broadcast: ADMIN_EOA must equal deployer; multi-signer admin handoff is Phase 4"
-        );
-
-        vm.startBroadcast();
-        Addresses memory addrs = _deploy();
         vm.stopBroadcast();
 
-        string memory upstreamSha = vm.readFile("../contracts/.upstream-sha");
+        string memory json = "addresses";
+        vm.serializeAddress(json, "unitroller", addr.unitroller);
+        vm.serializeAddress(json, "comptrollerLens", addr.comptrollerLens);
+        vm.serializeAddress(json, "accessControlManager", addr.accessControlManager);
+        vm.serializeAddress(json, "resilientOracle", addr.resilientOracle);
+        vm.serializeAddress(json, "marketFacet", addr.marketFacet);
+        vm.serializeAddress(json, "policyFacet", addr.policyFacet);
+        vm.serializeAddress(json, "setterFacet", addr.setterFacet);
+        vm.serializeAddress(json, "rewardFacet", addr.rewardFacet);
+        vm.serializeAddress(json, "vWTAO", addr.vWTAO);
+        vm.serializeAddress(json, "vAlpha30", addr.vAlpha30);
+        vm.serializeAddress(json, "vAlpha64", addr.vAlpha64);
+        vm.serializeAddress(json, "irmWTAO", addr.irmWTAO);
+        vm.serializeAddress(json, "irmAlpha", addr.irmAlpha);
+        vm.serializeAddress(json, "wtao", addr.wtao);
+        vm.serializeAddress(json, "mockAlpha30", addr.mockAlpha30);
+        string memory finalJson = vm.serializeAddress(json, "mockAlpha64", addr.mockAlpha64);
 
-        vm.writeFile(
-            "./broadcast/addresses.json",
-            _buildAddressesJson(deployer, upstreamSha, roles, addrs)
-        );
-    }
-
-    function _buildAddressesJson(
-        address deployer,
-        string memory upstreamSha,
-        EndureRoles.RoleSet memory roles,
-        Addresses memory addrs
-    ) internal view returns (string memory) {
-        return string(
-            abi.encodePacked(
-                "{\n",
-                '  "chainId": 31337,\n',
-                '  "upstreamMoonwellCommit": "', upstreamSha, '",\n',
-                '  "deployer": "', vm.toString(deployer), '",\n',
-                '  "roles": ', _rolesJson(roles), ',\n',
-                '  "contracts": ', _contractsJson(addrs), '\n',
-                "}\n"
-            )
-        );
-    }
-
-    function _rolesJson(
-        EndureRoles.RoleSet memory roles
-    ) internal view returns (string memory) {
-        return string(
-            abi.encodePacked(
-                "{\n",
-                '    "admin": "', vm.toString(roles.admin), '",\n',
-                '    "pauseGuardian": "', vm.toString(roles.pauseGuardian), '",\n',
-                '    "borrowCapGuardian": "', vm.toString(roles.borrowCapGuardian), '",\n',
-                '    "supplyCapGuardian": "', vm.toString(roles.supplyCapGuardian), '"\n',
-                "  }"
-            )
-        );
-    }
-
-    function _contractsJson(
-        Addresses memory addrs
-    ) internal view returns (string memory) {
-        string memory chunk1 = string(
-            abi.encodePacked(
-                "{\n",
-                '    "comptrollerProxy": "', vm.toString(addrs.comptrollerProxy), '",\n',
-                '    "comptrollerImpl": "', vm.toString(addrs.comptrollerImpl), '",\n',
-                '    "mockPriceOracle": "', vm.toString(addrs.mockPriceOracle), '",\n',
-                '    "wtao": "', vm.toString(addrs.wtao), '",\n',
-                '    "mockAlpha30": "', vm.toString(addrs.mockAlpha30), '",\n',
-                '    "mockAlpha64": "', vm.toString(addrs.mockAlpha64), '",\n'
-            )
-        );
-
-        string memory chunk2 = string(
-            abi.encodePacked(
-                '    "jumpRateModel_mWTAO": "', vm.toString(addrs.jumpRateModel_mWTAO), '",\n',
-                '    "jumpRateModel_mMockAlpha30": "', vm.toString(addrs.jumpRateModel_mMockAlpha30), '",\n',
-                '    "jumpRateModel_mMockAlpha64": "', vm.toString(addrs.jumpRateModel_mMockAlpha64), '",\n',
-                '    "mErc20Delegate": "', vm.toString(addrs.mErc20Delegate), '",\n'
-            )
-        );
-
-        string memory chunk3 = string(
-            abi.encodePacked(
-                '    "mWTAO": "', vm.toString(addrs.mWTAO), '",\n',
-                '    "mMockAlpha30": "', vm.toString(addrs.mMockAlpha30), '",\n',
-                '    "mMockAlpha64": "', vm.toString(addrs.mMockAlpha64), '"\n',
-                "  }"
-            )
-        );
-
-        return string(
-            abi.encodePacked(chunk1, chunk2, chunk3)
-        );
+        vm.writeJson(finalJson, string.concat(vm.projectRoot(), "/addresses.json"));
     }
 }

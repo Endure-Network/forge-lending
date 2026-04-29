@@ -1,8 +1,9 @@
 [profile.default]
-solc_version = "0.8.19"
-evm_version = "shanghai"
+auto_detect_solc = true
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
+code_size_limit = 999999
 sender = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
 src = 'src'
 script = 'src'
@@ -11,6 +12,6 @@ out = 'out'
 allow_paths = ["../contracts"]
 fs_permissions = [
   { access = "read", path = "../contracts" },
-  { access = "read-write", path = "./broadcast" },
-  { access = "read", path = "../contracts/.upstream-sha" }
+  { access = "read-write", path = "./" },
+  { access = "read-write", path = "./broadcast" }
 ]
