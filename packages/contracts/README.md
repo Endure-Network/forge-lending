@@ -30,6 +30,7 @@ New contracts and libraries located in `src/endure/`:
 - **MockAlpha30.sol**, **MockAlpha64.sol**: Phase 0 test ERC20 tokens representing Bittensor subnets.
 - **WTAO.sol**: Phase 0 mock Wrapped TAO (borrow asset).
 - **EnduRateModelParams.sol**: IRM constants for Venus TwoKinks shape.
+- **EndureDeployHelper.sol**: Atomic deploy helper used by both the Foundry script (`packages/deploy/src/DeployLocal.s.sol`) and the Hardhat script (`packages/contracts/scripts/deploy-local.ts`). Single source of truth for the Endure chassis deployment sequence (Diamond + facets + 3 markets + parameters + seed-and-burn).
 
 ## Key Venus Semantics
 - **Separate CF/LT**: Collateral Factor and Liquidation Threshold are distinct parameters.
@@ -60,8 +61,24 @@ The protocol uses a dual-toolchain test suite:
   ```
 
 ## Deployment
-Local deployment to Anvil is handled via Foundry scripts:
+
+Local deployment is supported on both toolchains. Both paths use the same `EndureDeployHelper.deployAll()` Solidity logic and produce the same `packages/deploy/addresses.json` (16-key alphabetized schema), so downstream tooling (frontend, integration, keepers) is toolchain-agnostic.
+
+### Foundry path (Anvil)
 ```bash
-forge script packages/deploy/src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast
+anvil --silent --disable-code-size-limit --gas-limit 1000000000 &
+cd packages/deploy && forge script src/DeployLocal.s.sol \
+    --rpc-url http://localhost:8545 --broadcast --slow --legacy --code-size-limit 999999
+bash scripts/e2e-smoke.sh
 ```
-Note: The deployment script is not idempotent. Restart the local Anvil chain before re-running. See `packages/deploy/README.md` for details.
+See `packages/deploy/README.md` for details on the EIP-170 size flags.
+
+### Hardhat path (hardhat node)
+```bash
+pnpm hardhat node                                                            # one terminal
+cd packages/contracts && pnpm hardhat run scripts/deploy-local.ts --network localhost
+cd packages/contracts && pnpm hardhat run scripts/smoke-local.ts  --network localhost
+```
+The Hardhat-side deploy targets the in-process `localhost` network and writes the same `packages/deploy/addresses.json`. `scripts/smoke-local.ts` is the Hardhat-native end-to-end smoke (supply/borrow/repay/redeem/liquidation via ethers).
+
+Note: The deployment scripts are not idempotent. Restart the local node before re-running. The vendored Venus `deploy/*.ts` chain is intentionally not auto-run on `hardhat node` startup — see `FORK_MANIFEST.md` §4.3 and §7.

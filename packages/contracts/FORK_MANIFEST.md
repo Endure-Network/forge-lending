@@ -49,16 +49,32 @@ The following TypeScript helpers were vendored from Venus `6400a067` into `packa
 
 The `helpers/markets/{bscmainnet,bsctestnet}.ts` and `helpers/tokens/{bscmainnet,bsctestnet}.ts` files contain BSC-specific configurations that Endure does not deploy; they are vendored for byte-identity, not for use.
 
-### 4.3 Hardhat-deploy Pipeline (NOT runnable on `hardhat node`)
-The vendored Venus deploy scripts at `packages/contracts/deploy/*.ts` are byte-identical Venus content. They auto-execute when `pnpm hardhat node` starts (via the `hardhat-deploy` plugin). **The deploy chain currently does not run end-to-end on Endure** because:
+### 4.3 Hardhat-deploy chain (intentionally not auto-run)
+The vendored Venus deploy scripts at `packages/contracts/deploy/*.ts` are byte-identical Venus content. By default, the `hardhat-deploy` plugin runs them automatically when `pnpm hardhat node` starts. Under Endure's vendoring scope, this auto-run is **disabled** (see §7) because the vendored deploy chain has 3 distinct module-load gaps:
 
-1. `deploy/005-deploy-VTreasuryV8.ts` and several other deploy scripts import deployment-address JSON files from `@venusprotocol/governance-contracts/deployments/<network>.json`, `@venusprotocol/oracle/deployments/*`, etc.
-2. Endure's `lib/venusprotocol-*/` vendor scope deliberately includes only the `contracts/` subtree of each upstream package, not the `deployments/` directories.
-3. As a result, `pnpm hardhat node` fails to boot with `Cannot find module '@venusprotocol/governance-contracts/deployments/arbitrumone.json'`.
+1. **`deploy/005-deploy-VTreasuryV8.ts` and `deploy/009-configure-vaults.ts`** import 14 chain-specific JSONs from `@venusprotocol/governance-contracts/deployments/`. Endure's vendored `governance-contracts` package (see §6) ships only the `contracts/` subtree of the upstream npm package; the `deployments/` subtree (~1.9 MB of address registries for chains Endure does not deploy on) is not vendored.
+2. **`deploy/006-deploy-psm.ts`** imports `@venusprotocol/oracle/dist/deploy/1-deploy-oracles`. The upstream npm package ships compiled `dist/` content; the GitHub source repo (the only source we can pin to via SHA for Stance B) does not contain `dist/`. Vendoring the source `deploy/1-deploy-oracles.ts` would require its transitive imports (`oracle/helpers/deploymentConfig.ts`, ~47 KB) which itself imports `@venusprotocol/venus-protocol/deployments/{bscmainnet,bsctestnet}.json` (~10 MB of upstream production registries — meta-vendoring the chassis itself, since Endure IS the venus-protocol fork).
+3. **`deploy/007-deploy-VBNBAdmin.ts`** imports `@venusprotocol/protocol-reserve/dist/deploy/000-psr` with a similar (smaller) cascade.
 
-Closing this gap requires vendoring deployment JSONs across all 5 `lib/venusprotocol-*` packages, which is a separate scope decision (would substantially expand `lib/` payload with chain-specific address registries that Endure does not deploy on). Documented as future work; not in scope for this PR.
+The total transitive surface to make Venus's deploy chain runnable on a fresh `hardhat` node is at least ~12 MB of upstream production state, much of it unrelated to Endure's audited surface. We declined this scope as misaligned with Endure's goals (we do not deploy on those chains, and the value is evidence-only — the canonical local-deploy path is `EndureDeployHelper`-based, see below).
 
-For local end-to-end deployment, use `forge script src/DeployLocal.s.sol` (see `packages/deploy/README.md`). That path is canonical and verified by `scripts/e2e-smoke.sh`.
+**Endure's local Hardhat deploy path** (canonical for Hardhat-side dev work, frontend integration):
+```
+pnpm hardhat node                                                            # one terminal
+cd packages/contracts && pnpm hardhat run scripts/deploy-local.ts --network localhost
+cd packages/contracts && pnpm hardhat run scripts/smoke-local.ts  --network localhost
+```
+
+**Foundry deploy path** (canonical for Foundry-side dev work, lives in `packages/deploy/`):
+```
+anvil --silent --disable-code-size-limit --gas-limit 1000000000 &
+cd packages/deploy && forge script src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast --slow --legacy --code-size-limit 999999
+bash scripts/e2e-smoke.sh
+```
+
+Both paths produce `packages/deploy/addresses.json` with the same 16-key alphabetized schema and exercise the same `EndureDeployHelper.deployAll()` Solidity logic (the helper lives at `src/endure/EndureDeployHelper.sol` and is the single source of truth for the Endure chassis deploy). Downstream tooling (frontend, integration tests, keepers) is toolchain-agnostic.
+
+Note: `scripts/e2e-smoke.sh` is foundry-tool-based (uses `cast`) and targets Anvil. Running it against `hardhat node` fails on `cast`-vs-Hardhat-EDR JSON-RPC strictness (cast 1.2.2 sends both `input` and `data` fields, which Hardhat 2.28+ rejects per spec). The Hardhat-native `scripts/smoke-local.ts` covers the same supply/borrow/repay/redeem/liquidation flow via ethers and is the canonical Hardhat-side smoke.
 
 ### 4.2 Vendored Solidity Helpers (Byte-identical)
 All files in `src/test-helpers/venus/` (excluding those listed in §5.3) are byte-identical to their upstream counterparts in the Venus `contracts/test-helpers/` or `test/` directories.
@@ -105,6 +121,7 @@ Endure deliberately diverges from the Venus toolchain to maintain a leaner depen
 ### 7.2 Behavioral Deviations
 - **No `module-alias`**: Venus uses `module-alias` to point `hardhat-ethers` to `hardhat-deploy-ethers`. Endure uses standard peer dependencies. This requires explicit `ethers.getContractFactory` calls in scenarios where Venus relies on implicit aliasing.
 - **Typechain Resolution**: Endure resolves Typechain targets from `./typechain-types` directly, whereas Venus often uses remapped `typechain/` paths. This is reflected in the 26 patches documented in §5.2.
+- **`hardhat-deploy` auto-run on `hardhat node` disabled**: Per-network `deploy: []` override in `hardhat.config.ts` for both the in-process `hardhat` network and the `localhost` network, suppressing the plugin's default behavior of executing every script in `deploy/` on node startup. The vendored Venus `deploy/*.ts` chain has 3 module-load gaps under Endure's vendoring scope (see §4.3); vendoring upstream's full transitive surface (~12 MB of production state) was rejected as scope-misaligned. Endure provides `packages/contracts/scripts/deploy-local.ts` as the on-demand replacement. No vendored Venus content was modified.
 
 ## 8. Stance B Audit Posture
 To verify byte-identity and audit parity:
