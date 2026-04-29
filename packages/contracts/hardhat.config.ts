@@ -84,6 +84,18 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       blockGasLimit: 100_000_000,
       gas: "auto",
+      // Endure: hardhat-deploy auto-run on `pnpm hardhat node` startup is
+      // disabled because the vendored Venus deploy/* chain has top-level
+      // imports against upstream package surfaces (governance-contracts/deployments/*,
+      // oracle/dist/deploy/*, protocol-reserve/dist/deploy/*) that Endure does
+      // not vendor. See FORK_MANIFEST §4.3.
+      // Endure-canonical Hardhat deploy: `pnpm hardhat run scripts/deploy-local.ts --network localhost`.
+      deploy: [],
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      // Same rationale as `hardhat`. The on-demand deploy script targets this network.
+      deploy: [],
     },
   },
   paths: {
