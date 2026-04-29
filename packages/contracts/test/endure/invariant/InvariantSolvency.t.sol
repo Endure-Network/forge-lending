@@ -1,49 +1,49 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 
 import {StdInvariant} from "@forge-std/StdInvariant.sol";
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
-import {EndureRoles} from "@protocol/endure/EndureRoles.sol";
+import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
 import {EndureHandler} from "./handlers/EndureHandler.sol";
-import {MErc20Delegator} from "@protocol/MErc20Delegator.sol";
-import {MockPriceOracle} from "@protocol/endure/MockPriceOracle.sol";
+import {VBep20Immutable} from "@protocol/venus-staging/Tokens/VTokens/VBep20Immutable.sol";
+import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
 
-contract InvariantSolvencyTest is StdInvariant, Test, EndureDeployHelper {
-    EndureDeployHelper.Addresses addrs;
+contract InvariantSolvencyTest is StdInvariant, Test {
+    EndureDeployHelperVenus helper;
+    EndureDeployHelperVenus.VenusAddresses addrs;
     EndureHandler handler;
-    MErc20Delegator mWTAO;
+    VBep20Immutable vWTAO;
 
     function setUp() public {
-        vm.warp(block.timestamp + 1 days);
-        EndureRoles.RoleSet memory roles = EndureRoles.RoleSet({
-            admin: address(this),
-            pauseGuardian: address(this),
-            borrowCapGuardian: address(this),
-            supplyCapGuardian: address(this)
-        });
-        addrs = _deployAs(roles);
-        mWTAO = MErc20Delegator(payable(addrs.mWTAO));
+        helper = new EndureDeployHelperVenus();
+        addrs = helper.deployAll();
+        vWTAO = VBep20Immutable(payable(addrs.vWTAO));
+
+        // Transfer oracle admin to handler for price manipulation
+        vm.prank(address(helper));
+        MockResilientOracle(addrs.resilientOracle).setAdmin(address(this));
 
         handler = new EndureHandler(
-            addrs.comptrollerProxy,
-            addrs.mWTAO,
-            addrs.mMockAlpha30,
+            addrs.unitroller,
+            addrs.vWTAO,
+            addrs.vAlpha30,
             addrs.wtao,
             addrs.mockAlpha30,
-            addrs.mockPriceOracle
+            addrs.resilientOracle
         );
-        MockPriceOracle(addrs.mockPriceOracle).setAdmin(address(handler));
+
+        // Transfer oracle admin to handler
+        MockResilientOracle(addrs.resilientOracle).setAdmin(address(handler));
 
         targetContract(address(handler));
     }
 
     function invariant_SolvencyGlobal() public view {
-        uint256 cash = mWTAO.getCash();
+        uint256 cash = vWTAO.getCash();
         uint256 supplyValueInUnderlying =
-            (mWTAO.totalSupply() * mWTAO.exchangeRateStored()) / 1e18;
-        uint256 borrows = mWTAO.totalBorrows();
-        uint256 reserves = mWTAO.totalReserves();
+            (vWTAO.totalSupply() * vWTAO.exchangeRateStored()) / 1e18;
+        uint256 borrows = vWTAO.totalBorrows();
+        uint256 reserves = vWTAO.totalReserves();
 
         assertGe(
             cash + supplyValueInUnderlying,
@@ -72,10 +72,6 @@ contract InvariantSolvencyTest is StdInvariant, Test, EndureDeployHelper {
         assertGt(handler.callCounts("borrow"), 0, "borrow not called");
         assertGt(handler.callCounts("repay"), 0, "repay not called");
         assertGt(handler.callCounts("redeem"), 0, "redeem not called");
-        assertGt(
-            handler.callCounts("moveOraclePrice"),
-            0,
-            "moveOraclePrice not called"
-        );
+        assertGt(handler.callCounts("moveOraclePrice"), 0, "moveOraclePrice not called");
     }
 }
