@@ -19,7 +19,7 @@ Endure uses the Venus Diamond proxy pattern for the Comptroller:
   - **MarketFacet**: Market lifecycle and account liquidity logic.
   - **PolicyFacet**: Policy hooks and risk parameter validation.
   - **SetterFacet**: Admin configuration for markets and protocol globals.
-  - **RewardFacet**: Reward distribution logic (note: rewards are out of scope for Phase 0).
+  - **RewardFacet**: Reward distribution logic. RewardFacet is deployed and fully functional. Rewards are opt-in via `enableVenusRewards()`; all reward speeds default to zero. See the protocol README for usage.
 
 ## Endure-specific Additions
 New contracts and libraries located in `src/endure/`:
