@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Venus-chassis E2E smoke test against a live Anvil chain.
-# Exercises: supply → borrow → repay → direct vToken liquidation.
+# Endure E2E smoke test: supply → borrow → repay → redeem → liquidate against the Venus chassis on local Anvil
+# Exercises: supply → borrow → repay → redeem → liquidate.
 # Exits 0 on success, non-zero on any step failure.
 set -euo pipefail
 
@@ -121,6 +121,63 @@ tb, cash, resv = $TB, $CASH, $RESV
 assert cash + resv >= tb, f"SOLVENCY VIOLATED: cash({cash}) + reserves({resv}) < borrows({tb})"
 print("  ✅ Solvency holds")
 PY
+
+echo ""
+echo "--- Redeem lifecycle ---"
+ALICE_ALPHA30_PRE_REDEEM=$(call "$ALPHA30" "balanceOf(address)(uint256)" "$ALICE" | awk '{print $1}')
+send_strict "Alice redeems 10 Alpha30"                  cast send "$VALPHA30" "redeemUnderlying(uint256)" 10000000000000000000          --private-key "$ALICE_PK"
+ALICE_ALPHA30_POST_REDEEM=$(call "$ALPHA30" "balanceOf(address)(uint256)" "$ALICE" | awk '{print $1}')
+python3 - <<PY || exit 1
+pre = $ALICE_ALPHA30_PRE_REDEEM
+post = $ALICE_ALPHA30_POST_REDEEM
+assert post > pre, f"Alice Alpha30 balance did not increase on redeem: pre={pre}, post={post}"
+PY
+echo "  ✅ Alice Alpha30 balance increased after redeem ($ALICE_ALPHA30_PRE_REDEEM → $ALICE_ALPHA30_POST_REDEEM)"
+
+echo ""
+echo "--- Liquidation lifecycle ---"
+send_strict "mint 100 Alpha30 to Bob"                   cast send "$ALPHA30" "mint(address,uint256)" "$BOB"      100000000000000000000       --private-key "$DEPLOYER_PK"
+send_strict "Bob approves vAlpha30"                     cast send "$ALPHA30" "approve(address,uint256)" "$VALPHA30" 100000000000000000000       --private-key "$BOB_PK"
+send_strict "Bob supplies 100 Alpha30"                  cast send "$VALPHA30" "mint(uint256)" 100000000000000000000                        --private-key "$BOB_PK"
+send_strict "Bob enters Alpha30 market"                 cast send "$UNITROLLER" "enterMarkets(address[])" "[$VALPHA30]"                    --private-key "$BOB_PK"
+send_strict "Bob borrows 10 WTAO"                       cast send "$VWTAO" "borrow(uint256)" 10000000000000000000                         --private-key "$BOB_PK"
+
+BOB_WTAO=$(call "$WTAO" "balanceOf(address)(uint256)" "$BOB" | awk '{print $1}')
+python3 - <<PY || exit 1
+bal = $BOB_WTAO
+assert bal == 10000000000000000000, f"Bob WTAO expected 1e19, got {bal}"
+PY
+echo "  ✅ Bob received 10 WTAO"
+
+ORACLE_ADMIN=$(call "$ORACLE" "admin()(address)" | awk '{print $1}')
+if [ "$ORACLE_ADMIN" = "0x0000000000000000000000000000000000000000" ]; then
+    echo "  ❌ oracle admin is zero address"
+    exit 1
+fi
+cast rpc --rpc-url "$URL" anvil_impersonateAccount "$ORACLE_ADMIN" >/dev/null
+cast rpc --rpc-url "$URL" anvil_setBalance "$ORACLE_ADMIN" 0x3635C9ADC5DEA00000 >/dev/null
+send_strict "Oracle drops Alpha30 price to 0.1"         cast send "$ORACLE" "setUnderlyingPrice(address,uint256)" "$VALPHA30" 100000000000000000 --from "$ORACLE_ADMIN" --unlocked
+
+BOB_LIQUIDITY_RESULT=$(call "$UNITROLLER" "getAccountLiquidity(address)(uint256,uint256,uint256)" "$BOB")
+mapfile -t BOB_LIQUIDITY_LINES <<< "$BOB_LIQUIDITY_RESULT"
+BOB_SHORTFALL=${BOB_LIQUIDITY_LINES[2]%% *}
+python3 - <<PY || exit 1
+shortfall = $BOB_SHORTFALL
+assert shortfall > 0, f"Bob should be underwater after price drop, shortfall={shortfall}"
+PY
+echo "  ✅ Bob shortfall detected: $BOB_SHORTFALL"
+
+send_strict "Deployer approves WTAO for liquidation"    cast send "$WTAO" "approve(address,uint256)" "$VWTAO" 5000000000000000000         --private-key "$DEPLOYER_PK"
+LIQUIDATOR_SEIZED_PRE=$(call "$VALPHA30" "balanceOf(address)(uint256)" "$DEPLOYER" | awk '{print $1}')
+send_strict "Deployer liquidates Bob borrow"            cast send "$VWTAO" "liquidateBorrow(address,uint256,address)" "$BOB" 5000000000000000000 "$VALPHA30" --private-key "$DEPLOYER_PK"
+LIQUIDATOR_SEIZED_POST=$(call "$VALPHA30" "balanceOf(address)(uint256)" "$DEPLOYER" | awk '{print $1}')
+python3 - <<PY || exit 1
+pre = $LIQUIDATOR_SEIZED_PRE
+post = $LIQUIDATOR_SEIZED_POST
+assert post > pre, f"Liquidator seized collateral did not increase: pre={pre}, post={post}"
+PY
+echo "  ✅ Liquidator received seized vAlpha30 ($LIQUIDATOR_SEIZED_PRE → $LIQUIDATOR_SEIZED_POST)"
+cast rpc --rpc-url "$URL" anvil_stopImpersonatingAccount "$ORACLE_ADMIN" >/dev/null
 
 echo ""
 echo "=== E2E smoke test PASSED ==="
