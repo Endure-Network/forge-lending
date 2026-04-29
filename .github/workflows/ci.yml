@@ -128,6 +128,8 @@ jobs:
         run: bash packages/contracts/scripts/link-hardhat-libs.sh
       - name: Run Hardhat tests
         run: pnpm --filter @endure/contracts hardhat test
+      - name: Check skip-list drift
+        run: bash scripts/check-hardhat-skips.sh
 
   pnpm-workspace:
     name: pnpm workspace (non-contracts)
