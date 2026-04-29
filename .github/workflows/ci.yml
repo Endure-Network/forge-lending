@@ -134,6 +134,22 @@ jobs:
       - name: Run E2E smoke test
         run: ./scripts/e2e-smoke.sh
 
+  contracts-hardhat-build:
+    name: hardhat compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Hardhat compile
+        run: pnpm --filter @endure/contracts hardhat compile
+
   pnpm-workspace:
     name: pnpm workspace (non-contracts)
     runs-on: ubuntu-latest
