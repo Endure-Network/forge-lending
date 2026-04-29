@@ -25,12 +25,40 @@ Located in `src/endure/`:
 ## 4. Test Infrastructure (Steady State)
 
 ### 4.1 Vendored Helpers (Byte-identical)
-The following TypeScript helpers were vendored from Venus `6400a067` into `packages/contracts/` to support the dual-toolchain test suite. These are byte-identical to upstream:
-- `helpers/chains.ts`
-- `helpers/deploymentConfig.ts`
-- `helpers/utils.ts`
-- `helpers/markets/types.ts`
-- `script/deploy/comptroller/diamond.ts`
+The following TypeScript helpers were vendored from Venus `6400a067` into `packages/contracts/` to support the dual-toolchain test suite and deploy pipeline. All are byte-identical to upstream (sha256-verified):
+
+| Endure path | Upstream path |
+|---|---|
+| `helpers/chains.ts` | `helpers/chains.ts` |
+| `helpers/deploymentConfig.ts` | `helpers/deploymentConfig.ts` |
+| `helpers/utils.ts` | `helpers/utils.ts` |
+| `helpers/markets/types.ts` | `helpers/markets/types.ts` |
+| `helpers/markets/index.ts` | `helpers/markets/index.ts` |
+| `helpers/markets/hardhat.ts` | `helpers/markets/hardhat.ts` |
+| `helpers/markets/bscmainnet.ts` | `helpers/markets/bscmainnet.ts` |
+| `helpers/markets/bsctestnet.ts` | `helpers/markets/bsctestnet.ts` |
+| `helpers/tokens/index.ts` | `helpers/tokens/index.ts` |
+| `helpers/tokens/types.ts` | `helpers/tokens/types.ts` |
+| `helpers/tokens/hardhat.ts` | `helpers/tokens/hardhat.ts` |
+| `helpers/tokens/bscmainnet.ts` | `helpers/tokens/bscmainnet.ts` |
+| `helpers/tokens/bsctestnet.ts` | `helpers/tokens/bsctestnet.ts` |
+| `helpers/tokens/common/indexBySymbol.ts` | `helpers/tokens/common/indexBySymbol.ts` |
+| `helpers/rateModelHelpers.ts` | `helpers/rateModelHelpers.ts` |
+| `helpers/writeFile.ts` | `helpers/writeFile.ts` |
+| `script/deploy/comptroller/diamond.ts` | `script/deploy/comptroller/diamond.ts` |
+
+The `helpers/markets/{bscmainnet,bsctestnet}.ts` and `helpers/tokens/{bscmainnet,bsctestnet}.ts` files contain BSC-specific configurations that Endure does not deploy; they are vendored for byte-identity, not for use.
+
+### 4.3 Hardhat-deploy Pipeline (NOT runnable on `hardhat node`)
+The vendored Venus deploy scripts at `packages/contracts/deploy/*.ts` are byte-identical Venus content. They auto-execute when `pnpm hardhat node` starts (via the `hardhat-deploy` plugin). **The deploy chain currently does not run end-to-end on Endure** because:
+
+1. `deploy/005-deploy-VTreasuryV8.ts` and several other deploy scripts import deployment-address JSON files from `@venusprotocol/governance-contracts/deployments/<network>.json`, `@venusprotocol/oracle/deployments/*`, etc.
+2. Endure's `lib/venusprotocol-*/` vendor scope deliberately includes only the `contracts/` subtree of each upstream package, not the `deployments/` directories.
+3. As a result, `pnpm hardhat node` fails to boot with `Cannot find module '@venusprotocol/governance-contracts/deployments/arbitrumone.json'`.
+
+Closing this gap requires vendoring deployment JSONs across all 5 `lib/venusprotocol-*` packages, which is a separate scope decision (would substantially expand `lib/` payload with chain-specific address registries that Endure does not deploy on). Documented as future work; not in scope for this PR.
+
+For local end-to-end deployment, use `forge script src/DeployLocal.s.sol` (see `packages/deploy/README.md`). That path is canonical and verified by `scripts/e2e-smoke.sh`.
 
 ### 4.2 Vendored Solidity Helpers (Byte-identical)
 All files in `src/test-helpers/venus/` (excluding those listed in §5.3) are byte-identical to their upstream counterparts in the Venus `contracts/test-helpers/` or `test/` directories.
