@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelper} from "../../helper/EndureDeployHelper.sol";
+import {EndureDeployHelper} from "@protocol/endure/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 
 contract DeployTest is Test {

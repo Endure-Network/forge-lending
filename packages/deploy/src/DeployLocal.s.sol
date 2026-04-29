@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Script} from "@forge-std/Script.sol";
-import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
+import {EndureDeployHelper} from "@protocol/endure/EndureDeployHelper.sol";
 
 contract DeployLocal is Script {
     function run() external {

@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
+import {EndureDeployHelper} from "@protocol/endure/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
 import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";

@@ -3,7 +3,7 @@ pragma solidity 0.8.25;
 
 import {StdInvariant} from "@forge-std/StdInvariant.sol";
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
+import {EndureDeployHelper} from "@protocol/endure/EndureDeployHelper.sol";
 import {EndureHandler} from "./handlers/EndureHandler.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
