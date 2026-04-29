@@ -38,10 +38,9 @@ LEGACY_PATTERNS=(
 FOUND=0
 
 for pattern in "${MOONWELL_PATTERNS[@]}"; do
-  # Search in src/ excluding endure/ (Endure-authored files) and FORK_MANIFEST
+  # Search in src/ excluding FORK_MANIFEST (endure/ is intentionally included)
   matches=$(grep -r "$pattern" "$SRC_DIR" \
     --include="*.sol" \
-    --exclude-dir=endure \
     -l 2>/dev/null | grep -v FORK_MANIFEST || true)
   if [ -n "$matches" ]; then
     echo "FORBIDDEN MOONWELL REMNANT '$pattern' found in:"
