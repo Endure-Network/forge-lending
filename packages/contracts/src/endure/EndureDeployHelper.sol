@@ -48,6 +48,19 @@ contract EndureDeployHelper {
         address mockAlpha64;
     }
 
+    /// @notice Stores the most recent successful deployAll() result so off-chain
+    /// callers (e.g. Hardhat scripts that submit deployAll() as a state-changing
+    /// transaction) can read the deployed addresses after the transaction is mined.
+    /// Foundry callers continue to use the deployAll() return value directly.
+    /// Storage is internal because the auto-generated getter for a 16-field
+    /// struct exceeds the EVM 16-slot stack limit; getLastDeployment() returns
+    /// the struct as a single memory value instead.
+    Addresses internal _lastDeployment;
+
+    function getLastDeployment() external view returns (Addresses memory) {
+        return _lastDeployment;
+    }
+
     function deployAll() external returns (Addresses memory addrs) {
         AllowAllAccessControlManager accessControlManager = new AllowAllAccessControlManager();
         MockResilientOracle resilientOracle = new MockResilientOracle();
@@ -168,6 +181,18 @@ contract EndureDeployHelper {
         addrs.policyFacet = address(policyFacet);
         addrs.setterFacet = address(setterFacet);
         addrs.rewardFacet = address(rewardFacet);
+
+        // Mirror the result into storage for off-chain transactional consumers.
+        // Foundry's vm.startBroadcast() callers continue to use the return value;
+        // Hardhat scripts submitting deployAll() as a tx read lastDeployment()
+        // via the auto-generated getter after the tx is mined.
+        // Assignment is delegated to a helper to keep deployAll()'s stack
+        // depth under the EVM 16-slot limit (the Addresses struct has 16 fields).
+        _persistDeployment(addrs);
+    }
+
+    function _persistDeployment(Addresses memory addrs) internal {
+        _lastDeployment = addrs;
     }
 
     function enableVenusRewards(
