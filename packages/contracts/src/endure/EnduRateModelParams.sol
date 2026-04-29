@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 library EnduRateModelParams {
     uint256 internal constant WTAO_BASE_RATE_PER_YEAR = 0.02e18;
@@ -22,4 +22,26 @@ library EnduRateModelParams {
     uint256 internal constant RESERVE_FACTOR = 0.15e18;
     uint256 internal constant SEED_AMOUNT = 1e18;
     uint256 internal constant INITIAL_EXCHANGE_RATE_MANTISSA = 2e18;
+}
+
+library EnduRateModelParamsVenus {
+    int256 internal constant WTAO_BASE_RATE_PER_YEAR = int256(0.02e18);
+    int256 internal constant WTAO_MULTIPLIER_PER_YEAR = int256(0.10e18);
+    int256 internal constant WTAO_KINK1 = int256(0.50e18);
+    int256 internal constant WTAO_MULTIPLIER_2_PER_YEAR = int256(0.50e18);
+    int256 internal constant WTAO_BASE_RATE_2_PER_YEAR = int256(0);
+    int256 internal constant WTAO_KINK2 = int256(0.80e18);
+    int256 internal constant WTAO_JUMP_MULTIPLIER_PER_YEAR = int256(3e18);
+    int256 internal constant WTAO_KINK = WTAO_KINK2;
+
+    int256 internal constant ALPHA_BASE_RATE_PER_YEAR = int256(0);
+    int256 internal constant ALPHA_MULTIPLIER_PER_YEAR = int256(0);
+    int256 internal constant ALPHA_KINK1 = int256(0.99e18);
+    int256 internal constant ALPHA_MULTIPLIER_2_PER_YEAR = int256(0);
+    int256 internal constant ALPHA_BASE_RATE_2_PER_YEAR = int256(0);
+    int256 internal constant ALPHA_KINK2 = int256(1e18);
+    int256 internal constant ALPHA_JUMP_MULTIPLIER_PER_YEAR = int256(0);
+    int256 internal constant ALPHA_KINK = ALPHA_KINK2;
+
+    int256 internal constant BLOCKS_PER_YEAR = int256(2_628_000);
 }
