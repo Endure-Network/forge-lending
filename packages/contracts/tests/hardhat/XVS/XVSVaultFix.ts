@@ -47,7 +47,7 @@ async function deployAndConfigureNewVault() {
 
   const xvsVaultProxy = XVSVaultProxy__factory.connect(vaultProxy, admin);
 
-  const xvsVaultFactory = await ethers.getContractFactory("contracts/XVSVault/XVSVault.sol:XVSVault");
+  const xvsVaultFactory = await ethers.getContractFactory("src/XVSVault/XVSVault.sol:XVSVault");
   const xvsVaultImpl = await xvsVaultFactory.deploy();
   await xvsVaultImpl.deployed();
 

@@ -48,7 +48,7 @@ type FlashLoanContractsFixture = {
 // Create a fixture will deploy all the required contracts for flashLoan
 const flashLoanTestFixture = async (): Promise<FlashLoanContractsFixture> => {
   const [admin] = await ethers.getSigners();
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
   oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
 
   const accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
@@ -146,7 +146,7 @@ describe("FlashLoan", async () => {
     );
 
     protocolShareReserveMock = await smock.fake<IProtocolShareReserve>(
-      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
+      "src/external/IProtocolShareReserve.sol:IProtocolShareReserve",
     );
     vTokenA.setAccessControlManager(contracts.accessControlManager.address);
     vTokenB.setAccessControlManager(contracts.accessControlManager.address);

@@ -64,7 +64,7 @@ describe("Comptroller: assetListTest", () => {
     const result = await deployDiamond("");
     unitroller = result.unitroller;
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     await comptroller._setAccessControl(accessControl.address);
@@ -74,7 +74,7 @@ describe("Comptroller: assetListTest", () => {
     const [OMG, ZRX, BAT, SKT] = await Promise.all(
       names.map(async name => {
         const vToken = await smock.fake<VBep20Immutable>(
-          "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+          "src/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
         );
         if (name !== "sketch") {
           await comptroller._supportMarket(vToken.address);
@@ -330,7 +330,7 @@ describe("Comptroller: assetListTest", () => {
     });
 
     it("reverts when unlisting not a listed market", async () => {
-      const vToken = await smock.fake<VBep20Immutable>("contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
+      const vToken = await smock.fake<VBep20Immutable>("src/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable");
       await enterAndCheckMarkets([BAT, ZRX], [BAT, ZRX]);
 
       await unlistAndCheckMarket(vToken, [BAT, ZRX], [BAT, ZRX], Error.MARKET_NOT_LISTED);

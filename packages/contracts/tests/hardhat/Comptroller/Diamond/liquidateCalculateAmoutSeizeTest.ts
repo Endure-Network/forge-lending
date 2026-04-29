@@ -65,17 +65,17 @@ describe("Comptroller", () => {
     const unitroller = result.unitroller;
     comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     const comptrollerLens = await ComptrollerLensFactory.deploy();
-    const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+    const oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
     accessControl.isAllowedToCall.returns(true);
     await comptroller._setAccessControl(accessControl.address);
     await comptroller._setComptrollerLens(comptrollerLens.address);
     await comptroller._setPriceOracle(oracle.address);
 
     const vTokenBorrowed = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+      "src/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
     const vTokenCollateral = await smock.fake<VBep20Immutable>(
-      "contracts/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
+      "src/Tokens/VTokens/VBep20Immutable.sol:VBep20Immutable",
     );
 
     await comptroller._supportMarket(vTokenBorrowed.address);

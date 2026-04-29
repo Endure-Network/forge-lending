@@ -17,7 +17,7 @@ describe("VToken", function () {
   beforeEach(async () => {
     [root, nonAdmin] = await ethers.getSigners();
 
-    const comptroller = await smock.fake("contracts/Comptroller/ComptrollerInterface.sol:ComptrollerInterface");
+    const comptroller = await smock.fake("src/Comptroller/ComptrollerInterface.sol:ComptrollerInterface");
     comptroller.isComptroller.returns(true);
 
     const psr = await smock.fake("IProtocolShareReserve");

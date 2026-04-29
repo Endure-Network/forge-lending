@@ -40,7 +40,7 @@ describe("RepayBorrow Capping Logic Tests", async () => {
     [admin, user, liquidator] = await ethers.getSigners();
 
     // Setup mocks
-    oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+    oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
     oracle.getUnderlyingPrice.returns(convertToUnit(1, 18));
 
     accessControlManager = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
@@ -52,7 +52,7 @@ describe("RepayBorrow Capping Logic Tests", async () => {
     interestRateModel.getSupplyRate.returns(parseUnits("0.000005", 18));
 
     protocolShareReserve = await smock.fake<IProtocolShareReserve>(
-      "contracts/external/IProtocolShareReserve.sol:IProtocolShareReserve",
+      "src/external/IProtocolShareReserve.sol:IProtocolShareReserve",
     );
 
     const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");

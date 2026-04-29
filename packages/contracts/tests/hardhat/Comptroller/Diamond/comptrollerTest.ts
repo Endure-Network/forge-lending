@@ -35,7 +35,7 @@ type SimpleComptrollerFixture = {
 const corePoolId = 0;
 
 async function deploySimpleComptroller(): Promise<SimpleComptrollerFixture> {
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
   const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
@@ -263,7 +263,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const newOracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+      const newOracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
       // comptroller = await ethers.getContractAt("ComptrollerMock", contracts.unitroller);
       return { ...contracts, newOracle };
     }
@@ -579,9 +579,9 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
-      const vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
-      const token = await smock.fake<EIP20Interface>("contracts/Tokens/EIP20Interface.sol:EIP20Interface");
+      const vToken1 = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
+      const vToken2 = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
+      const token = await smock.fake<EIP20Interface>("src/Tokens/EIP20Interface.sol:EIP20Interface");
       return { ...contracts, vToken1, vToken2, token };
     }
 
@@ -717,7 +717,7 @@ describe("Comptroller", () => {
 
     async function deploy(): Promise<Contracts> {
       const contracts = await deploySimpleComptroller();
-      const vToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+      const vToken = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
       await contracts.comptroller._supportMarket(vToken.address);
       return { ...contracts, vToken };
     }
@@ -762,7 +762,7 @@ describe("Comptroller", () => {
       });
 
       it("reverts if market is not listed", async () => {
-        const someVToken = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+        const someVToken = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
         await expect(
           comptroller.mintAllowed(someVToken.address, root.address, convertToUnit("1", 18)),
         ).to.be.revertedWith("market not listed");

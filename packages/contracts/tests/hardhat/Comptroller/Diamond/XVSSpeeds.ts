@@ -22,8 +22,8 @@ describe("Comptroller", () => {
 
     comptroller = await ethers.getContractAt("ComptrollerMock", unitroller.address);
     accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
-    vToken1 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
-    vToken2 = await smock.fake<VToken>("contracts/Tokens/VTokens/VToken.sol:VToken");
+    vToken1 = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
+    vToken2 = await smock.fake<VToken>("src/Tokens/VTokens/VToken.sol:VToken");
 
     accessControl.isAllowedToCall.returns(true);
     vToken1.isVToken.returns(true);

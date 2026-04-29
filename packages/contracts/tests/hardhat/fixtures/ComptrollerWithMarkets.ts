@@ -126,7 +126,7 @@ export const deployFakeProtocolShareReserve = async (): Promise<FakeContract<IPr
 };
 
 export const deployFakeOracle = async (): Promise<FakeContract<PriceOracle>> => {
-  const oracle = await smock.fake<PriceOracle>("contracts/Oracle/PriceOracle.sol:PriceOracle");
+  const oracle = await smock.fake<PriceOracle>("src/Oracle/PriceOracle.sol:PriceOracle");
   oracle.getUnderlyingPrice.returns(parseUnits("1", 18));
   return oracle;
 };

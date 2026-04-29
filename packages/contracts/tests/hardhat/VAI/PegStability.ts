@@ -48,7 +48,7 @@ async function pegStabilityFixture(tokenDecimals: number): Promise<PegStabilityF
   const stableToken = await smock.fake<IERC20MetadataUpgradeable>("IERC20MetadataUpgradeable");
   stableToken.decimals.returns(tokenDecimals);
   const priceOracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
-  const vai = await smock.fake<VAI>("contracts/Tokens/VAI/VAI.sol:VAI");
+  const vai = await smock.fake<VAI>("src/Tokens/VAI/VAI.sol:VAI");
   const PSMFactory = await smock.mock<PegStability__factory>("PegStability");
   const pegStability = await PSMFactory.deploy(stableToken.address, vai.address);
   await pegStability.setVariables({
