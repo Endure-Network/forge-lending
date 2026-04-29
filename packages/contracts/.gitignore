@@ -3,3 +3,4 @@ artifacts/
 cache_hardhat/
 deployments/localhost/
 deployments/hardhat/
+typechain-types/
