@@ -1,24 +1,8 @@
 #!/usr/bin/env bash
+# check-forbidden-patterns.sh
+# Scans packages/contracts/src/ for Moonwell remnants that should not exist
+# post-Venus-rebase, plus legacy stripped-contract identifiers.
 set -euo pipefail
-
-PATTERNS=(
-  "0x805"
-  "IStakingV2"
-  "BittensorStakeAdapter"
-  "MAlpha"
-  "EnduOracle"
-  "@wormhole/"
-  "stkWell"
-  "xWELL"
-  "TemporalGovernor"
-  "MultichainGovernor"
-  "AdminMultisig"
-)
-
-# MultiRewardDistributor is kept in src/rewards/ as a Stance B exception:
-# ComptrollerStorage.sol (kept core) imports it and cannot be modified.
-# We check it separately, excluding the rewards/ directory itself.
-MULTI_REWARD_EXCEPTION_DIR="packages/contracts/src/rewards"
 
 SRC_DIR="packages/contracts/src"
 
@@ -27,26 +11,57 @@ if [ ! -d "$SRC_DIR" ]; then
   exit 0
 fi
 
+# Moonwell remnants (post-Venus rebase these must not appear)
+MOONWELL_PATTERNS=(
+  "MToken"
+  "MErc20"
+  "MErc20Delegator"
+  "mWell"
+  "WELL"
+  "xWELL"
+)
+
+# Legacy stripped-contract identifiers
+LEGACY_PATTERNS=(
+  "0x805"
+  "IStakingV2"
+  "BittensorStakeAdapter"
+  "MAlpha"
+  "EnduOracle"
+  "@wormhole/"
+  "stkWell"
+  "TemporalGovernor"
+  "MultichainGovernor"
+  "AdminMultisig"
+)
+
 FOUND=0
-for pattern in "${PATTERNS[@]}"; do
-  if grep -r "$pattern" "$SRC_DIR" --include="*.sol" -l 2>/dev/null | grep -q .; then
-    echo "FORBIDDEN PATTERN FOUND: $pattern"
-    grep -r "$pattern" "$SRC_DIR" --include="*.sol" -n
-    FOUND=1
+
+for pattern in "${MOONWELL_PATTERNS[@]}"; do
+  # Search in src/ excluding endure/ (Endure-authored files) and FORK_MANIFEST
+  matches=$(grep -r "$pattern" "$SRC_DIR" \
+    --include="*.sol" \
+    --exclude-dir=endure \
+    -l 2>/dev/null | grep -v FORK_MANIFEST || true)
+  if [ -n "$matches" ]; then
+    echo "FORBIDDEN MOONWELL REMNANT '$pattern' found in:"
+    echo "$matches"
+    FOUND=$((FOUND+1))
   fi
 done
 
-# Check MultiRewardDistributor outside of the allowed rewards/ directory
-if grep -r "MultiRewardDistributor" "$SRC_DIR" --include="*.sol" -l 2>/dev/null | grep -v "^$MULTI_REWARD_EXCEPTION_DIR" | grep -v "^packages/contracts/src/Comptroller" | grep -v "^packages/contracts/src/ComptrollerStorage" | grep -q .; then
-  echo "FORBIDDEN PATTERN FOUND: MultiRewardDistributor (outside allowed core files)"
-  grep -r "MultiRewardDistributor" "$SRC_DIR" --include="*.sol" -l | grep -v "^$MULTI_REWARD_EXCEPTION_DIR" | grep -v "^packages/contracts/src/Comptroller" | grep -v "^packages/contracts/src/ComptrollerStorage"
-  FOUND=1
-fi
+for pattern in "${LEGACY_PATTERNS[@]}"; do
+  if grep -r "$pattern" "$SRC_DIR" --include="*.sol" -l 2>/dev/null | grep -q .; then
+    echo "FORBIDDEN LEGACY PATTERN '$pattern' found in:"
+    grep -r "$pattern" "$SRC_DIR" --include="*.sol" -l
+    FOUND=$((FOUND+1))
+  fi
+done
 
-if [ "$FOUND" -eq 1 ]; then
-  echo "ERROR: Forbidden patterns found in packages/contracts/src/"
+if [ "$FOUND" -ne 0 ]; then
+  echo "ERROR: $FOUND forbidden pattern(s) found in $SRC_DIR"
   exit 1
 fi
 
-echo "OK: No forbidden patterns found in packages/contracts/src/"
+echo "OK: No forbidden patterns found in $SRC_DIR"
 exit 0
