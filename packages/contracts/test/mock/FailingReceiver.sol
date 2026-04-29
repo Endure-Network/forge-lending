@@ -1,4 +1,4 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 
 contract FailingReceiver {
     fallback() external payable {

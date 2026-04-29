@@ -1,9 +1,10 @@
 [profile.default]
-# auto_detect_solc lets Foundry pick the right compiler per-file based on pragma.
-# Phase 0 vendored Moonwell files pin pragma 0.8.19; Phase 0.5 vendored Venus
-# files pin pragma 0.8.25 (with some legacy 0.5.16). Both must compile during
-# the rebase. Once Moonwell is removed in Stage B Chunk 5b, we will pin
-# solc_version = "0.8.25" explicitly.
+# Venus upstream files use ^0.5.16 / =0.5.16 pragmas (XVSVault, VAIVault, etc.).
+# Foundry's resolver fails hard with solc_version pinned when those files are
+# present in src/ — even if no test imports them. auto_detect_solc = true lets
+# the resolver handle mixed pragmas gracefully; Foundry skips 0.5.x files it
+# cannot compile and only builds the 0.8.25 contracts. Hardhat handles 0.5.x.
+# TODO: pin solc_version = "0.8.25" once 0.5.x files are removed from src/.
 auto_detect_solc = true
 evm_version = "cancun"
 optimizer = true
