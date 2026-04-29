@@ -56,58 +56,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Read pinned upstream SHA
-        id: sha
-        run: echo "UPSTREAM_SHA=$(cat packages/contracts/.upstream-sha)" >> "$GITHUB_OUTPUT"
-      - name: Clone upstream at pinned commit
-        run: |
-          git clone --filter=blob:none https://github.com/VenusProtocol/venus-protocol.git /tmp/upstream
-          cd /tmp/upstream
-          git checkout ${{ steps.sha.outputs.UPSTREAM_SHA }}
       - name: Compare vendored src/ against upstream contracts/
-        run: |
-          set -e
-          LOCAL=$GITHUB_WORKSPACE/packages/contracts
-          DOCUMENTED_DEVIATIONS=(
-            "src/test-helpers/venus/VRTConverterHarness.sol"
-            "src/test-helpers/venus/VRTVaultHarness.sol"
-            "src/test-helpers/venus/XVSVestingHarness.sol"
-          )
-          is_documented() {
-            local f=$1
-            for d in "${DOCUMENTED_DEVIATIONS[@]}"; do
-              [ "$f" = "$d" ] && return 0
-            done
-            return 1
-          }
-          DIVERGED=0
-          MATCH=0
-          DOCUMENTED=0
-          while IFS= read -r f; do
-            REL=${f#$LOCAL/}
-            if [[ "$REL" == src/endure/* ]]; then continue; fi
-            if [[ "$REL" == src/test-helpers/venus/* ]]; then continue; fi
-            if [[ "$REL" == src/* ]]; then
-              UPSTREAM_REL="contracts/${REL#src/}"
-            else
-              continue
-            fi
-            if [ -f "/tmp/upstream/$UPSTREAM_REL" ]; then
-              UP=$(sha256sum "/tmp/upstream/$UPSTREAM_REL" | awk '{print $1}')
-              LO=$(sha256sum "$f" | awk '{print $1}')
-              if [ "$UP" = "$LO" ]; then
-                MATCH=$((MATCH+1))
-              elif is_documented "$REL"; then
-                DOCUMENTED=$((DOCUMENTED+1))
-                echo "::warning file=$REL::documented Stance B deviation (see FORK_MANIFEST.md section 6.2)"
-              else
-                DIVERGED=$((DIVERGED+1))
-                echo "::error file=$REL::UNDOCUMENTED Stance B violation - add to FORK_MANIFEST.md or revert"
-              fi
-            fi
-          done < <(find "$LOCAL/src" -name "*.sol" -type f | sort)
-          echo "Stance B: byte-identical=$MATCH documented-deviations=$DOCUMENTED undocumented-diverged=$DIVERGED"
-          if [ "$DIVERGED" -ne 0 ]; then exit 1; fi
+        run: bash scripts/check-stance-b.sh
 
   e2e-smoke:
     name: live-chain E2E (anvil)
