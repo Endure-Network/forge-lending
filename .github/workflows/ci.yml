@@ -152,6 +152,25 @@ jobs:
       - name: Hardhat compile
         run: pnpm --filter @endure/contracts hardhat compile
 
+  contracts-hardhat-test:
+    name: hardhat test
+    runs-on: ubuntu-latest
+    needs: [contracts-hardhat-build]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+      - name: Link hardhat libs
+        run: bash packages/contracts/scripts/link-hardhat-libs.sh
+      - name: Run Hardhat tests
+        run: pnpm --filter @endure/contracts hardhat test
+
   pnpm-workspace:
     name: pnpm workspace (non-contracts)
     runs-on: ubuntu-latest
