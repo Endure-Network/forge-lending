@@ -4,7 +4,9 @@ import hre from "hardhat";
 import { FacetCutAction, getSelectors } from "../../../../../script/deploy/comptroller/diamond";
 import { Unitroller__factory } from "../../../../../typechain";
 
-require("dotenv").config();
+try {
+  require("dotenv").config();
+} catch {}
 
 const ethers = hre.ethers;
 

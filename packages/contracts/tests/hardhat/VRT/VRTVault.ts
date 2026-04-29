@@ -5,12 +5,12 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 
-import { IAccessControlManager, VRT, VRTVault, VRTVault__factory, VRT__factory } from "../../../typechain";
+import { IAccessControlManagerV5, VRT, VRTVault, VRTVault__factory, VRT__factory } from "../../../typechain";
 
 const bigNumber18 = BigNumber.from("1000000000000000000"); // 1e18
 
 type VaultFixture = {
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   vrtVault: VRTVault;
   vrt: VRT;
   user1: SignerWithAddress;
@@ -29,8 +29,8 @@ async function deployVaultFixture(): Promise<VaultFixture> {
   const vrtVault: VRTVault = await vrtVaultFactory.deploy();
   await vrtVault.initialize(vrt.address, bigNumber18);
 
-  const accessControl: FakeContract<IAccessControlManager> =
-    await smock.fake<IAccessControlManager>("AccessControlManager");
+  const accessControl: FakeContract<IAccessControlManagerV5> =
+    await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
 
   await vrtVault.setAccessControl(accessControl.address);

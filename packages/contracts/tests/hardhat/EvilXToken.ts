@@ -1,14 +1,20 @@
 import { smock } from "@defi-wonderland/smock";
 import chai from "chai";
+import { Contract } from "ethers";
 import { ethers } from "hardhat";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { convertToUnit } from "../../helpers/utils";
-import { ComptrollerHarness__factory, IAccessControlManagerV8, IProtocolShareReserve } from "../../typechain";
+import { ComptrollerHarness__factory, IAccessControlManagerV8, IProtocolShareReserve } from "../../typechain-types";
 
 const { expect } = chai;
 
 describe("Evil Token test", async () => {
-  let vToken1, vToken2, vToken3, unitroller, user;
+  let vToken1: Contract;
+  let vToken2: Contract;
+  let vToken3: Contract;
+  let unitroller: Contract;
+  let user: SignerWithAddress;
 
   beforeEach(async () => {
     const [root, account1] = await ethers.getSigners();

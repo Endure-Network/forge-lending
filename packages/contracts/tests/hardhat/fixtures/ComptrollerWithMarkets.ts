@@ -197,12 +197,8 @@ export const deployInterestRateModelHarness = async ({
 };
 
 const deployProtocolShareReserve = async (comptroller: string) => {
-  const vBNB = await deployVBNB();
-  const wBNB = await deployMockToken();
-  const protocolShareReserveFactory = await ethers.getContractFactory("ProtocolShareReserve");
-  const protocolShareReserve = await protocolShareReserveFactory.deploy(comptroller, wBNB.address, vBNB.address);
-  await protocolShareReserve.deployed();
-  return protocolShareReserve;
+  void comptroller;
+  return deployFakeProtocolShareReserve();
 };
 
 export const deployMockToken = async ({

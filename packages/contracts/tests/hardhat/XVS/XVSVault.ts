@@ -6,8 +6,14 @@ import { parseUnits } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 
 import { DEFAULT_BLOCKS_PER_YEAR } from "../../../helpers/deploymentConfig";
-import { IERC20Upgradeable, XVS, XVSStore, XVSVaultScenario, XVSVaultScenario__factory } from "../../../typechain";
-import { IAccessControlManager } from "../../../typechain/contracts/Governance";
+import {
+  IAccessControlManagerV5,
+  IERC20Upgradeable,
+  XVS,
+  XVSStore,
+  XVSVaultScenario,
+  XVSVaultScenario__factory,
+} from "../../../typechain";
 
 const rewardPerBlock = parseUnits("1", 18);
 const lockPeriod = 300;
@@ -17,7 +23,7 @@ const poolId = 0;
 interface XVSVaultFixture {
   xvsVault: MockContract<XVSVaultScenario>;
   xvs: XVS;
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   xvsStore: XVSStore;
 }
 
@@ -26,7 +32,7 @@ describe("XVSVault", async () => {
   let user: Wallet;
   let xvsVault: MockContract<XVSVaultScenario>;
   let xvs: XVS;
-  let accessControl: FakeContract<IAccessControlManager>;
+  let accessControl: FakeContract<IAccessControlManagerV5>;
   let xvsStore: XVSStore;
 
   before("get signers", async () => {
@@ -44,7 +50,7 @@ describe("XVSVault", async () => {
     xvsVault = await xvsVaultFactory.deploy();
     await xvsVault.initializeTimeManager(false, DEFAULT_BLOCKS_PER_YEAR);
 
-    const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+    const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
     accessControl.isAllowedToCall.returns(true);
     await xvsVault.connect(deployer).setAccessControl(accessControl.address);
 

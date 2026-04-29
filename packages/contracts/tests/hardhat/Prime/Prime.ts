@@ -12,7 +12,7 @@ import {
   ComptrollerLens__factory,
   ComptrollerMock,
   ComptrollerMock__factory,
-  IAccessControlManager,
+  IAccessControlManagerV5,
   InterestRateModelHarness,
   PrimeLiquidityProvider,
   PrimeScenario,
@@ -32,7 +32,7 @@ export const bigNumber16 = BigNumber.from("10000000000000000"); // 1e16
 
 type SetupProtocolFixture = {
   oracle: FakeContract<ResilientOracleInterface>;
-  accessControl: FakeContract<IAccessControlManager>;
+  accessControl: FakeContract<IAccessControlManagerV5>;
   comptrollerLens: MockContract<ComptrollerLens>;
   comptroller: MockContract<ComptrollerMock>;
   usdt: BEP20Harness;
@@ -51,7 +51,7 @@ async function deployProtocol(): Promise<SetupProtocolFixture> {
   const [wallet, user1, user2, user3] = await ethers.getSigners();
 
   const oracle = await smock.fake<ResilientOracleInterface>("ResilientOracleInterface");
-  const accessControl = await smock.fake<IAccessControlManager>("AccessControlManager");
+  const accessControl = await smock.fake<IAccessControlManagerV5>("IAccessControlManagerV5");
   accessControl.isAllowedToCall.returns(true);
   const ComptrollerLensFactory = await smock.mock<ComptrollerLens__factory>("ComptrollerLens");
   const ComptrollerFactory = await smock.mock<ComptrollerMock__factory>("ComptrollerMock");
