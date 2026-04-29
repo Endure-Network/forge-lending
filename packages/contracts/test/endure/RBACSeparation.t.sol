@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {VToken} from "@protocol/Tokens/VTokens/VToken.sol";
 import {Unitroller} from "@protocol/Comptroller/Unitroller.sol";
@@ -10,15 +10,15 @@ import {SetterFacet} from "@protocol/Comptroller/Diamond/facets/SetterFacet.sol"
 import {DenyAllAccessControlManager} from "@protocol/endure/DenyAllAccessControlManager.sol";
 
 contract RBACSeparationTest is Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
 
     SetterFacet sf;
     DenyAllAccessControlManager denyAcm;
     address nonAdmin = makeAddr("nonAdmin");
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         sf = SetterFacet(addrs.unitroller);
         denyAcm = new DenyAllAccessControlManager();

@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {VToken} from "@protocol/Tokens/VTokens/VToken.sol";
 import {ComptrollerInterface} from "@protocol/Comptroller/ComptrollerInterface.sol";
@@ -15,13 +15,13 @@ import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";
 /// @title CollateralFactorOrderingTest
 /// @notice Proves Venus rejects invalid CF/LT configurations.
 contract CollateralFactorOrderingTest is Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
 
     SetterFacet sf;
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         sf = SetterFacet(addrs.unitroller);
     }

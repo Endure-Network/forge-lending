@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
 import {MockXVS} from "@protocol/endure/MockXVS.sol";
@@ -12,8 +12,8 @@ import {WTAO} from "@protocol/endure/WTAO.sol";
 /// @title RewardFacetEnableTest
 /// @notice Proves the reward enable + claim path works end-to-end via Diamond.
 contract RewardFacetEnableTest is Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
 
     MockXVS mockXvs;
     VBep20Immutable vWTAO;
@@ -25,7 +25,7 @@ contract RewardFacetEnableTest is Test {
     address supplier = makeAddr("supplier");
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         vWTAO = VBep20Immutable(payable(addrs.vWTAO));
         vAlpha30 = VBep20Immutable(payable(addrs.vAlpha30));

@@ -3,19 +3,19 @@ pragma solidity 0.8.25;
 
 import {StdInvariant} from "@forge-std/StdInvariant.sol";
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {EndureHandler} from "./handlers/EndureHandler.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
 
 contract InvariantSolvencyTest is StdInvariant, Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
     EndureHandler handler;
     VBep20Immutable vWTAO;
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         vWTAO = VBep20Immutable(payable(addrs.vWTAO));
 

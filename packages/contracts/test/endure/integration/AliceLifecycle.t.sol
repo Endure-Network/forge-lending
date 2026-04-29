@@ -2,15 +2,15 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol";
 import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";
 import {WTAO} from "@protocol/endure/WTAO.sol";
 
 contract AliceLifecycleTest is Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
 
     VBep20Immutable vAlpha30;
     VBep20Immutable vWTAO;
@@ -21,7 +21,7 @@ contract AliceLifecycleTest is Test {
     address supplier = makeAddr("supplier");
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         vAlpha30 = VBep20Immutable(payable(addrs.vAlpha30));
         vWTAO = VBep20Immutable(payable(addrs.vWTAO));

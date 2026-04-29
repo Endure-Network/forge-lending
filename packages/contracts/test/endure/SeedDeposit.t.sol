@@ -2,12 +2,12 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "@test/helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "@test/helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 
 contract SeedDepositTest is Test {
-    EndureDeployHelperVenus helper;
-    EndureDeployHelperVenus.VenusAddresses addrs;
+    EndureDeployHelper helper;
+    EndureDeployHelper.Addresses addrs;
 
     VBep20Immutable vWTAO;
     VBep20Immutable vAlpha30;
@@ -16,7 +16,7 @@ contract SeedDepositTest is Test {
     address constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         vWTAO = VBep20Immutable(payable(addrs.vWTAO));
         vAlpha30 = VBep20Immutable(payable(addrs.vAlpha30));

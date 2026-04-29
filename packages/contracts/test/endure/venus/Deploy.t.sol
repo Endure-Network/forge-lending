@@ -2,18 +2,18 @@
 pragma solidity 0.8.25;
 
 import {Test} from "@forge-std/Test.sol";
-import {EndureDeployHelperVenus} from "../../helper/EndureDeployHelperVenus.sol";
+import {EndureDeployHelper} from "../../helper/EndureDeployHelper.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
 
 contract DeployTest is Test {
-    EndureDeployHelperVenus helper;
+    EndureDeployHelper helper;
 
     function setUp() public {
-        helper = new EndureDeployHelperVenus();
+        helper = new EndureDeployHelper();
     }
 
     function test_FullAddressSurface() public {
-        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
+        EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         // Core infrastructure
         assertTrue(addr.unitroller != address(0), "unitroller");
@@ -43,7 +43,7 @@ contract DeployTest is Test {
     }
 
     function test_ComptrollerWired() public {
-        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
+        EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         // markets listed — Venus markets() returns 7-tuple:
         // (bool isListed, uint256 cf, bool isVenus, uint256 lt, uint256 li, uint96 poolId, bool isBorrowAllowed)
@@ -58,7 +58,7 @@ contract DeployTest is Test {
     }
 
     function test_CFReturnCodeZero() public {
-        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
+        EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         (, uint256 wtaoCf,, uint256 wtaoLt,,, bool wtaoBorrowAllowed) = IComptroller(addr.unitroller).markets(addr.vWTAO);
         assertEq(wtaoCf, 0, "vWTAO collateral factor");
@@ -77,7 +77,7 @@ contract DeployTest is Test {
     }
 
     function test_BorrowCapsAndSeedBurnConfigured() public {
-        EndureDeployHelperVenus.VenusAddresses memory addr = helper.deployAll();
+        EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         assertEq(IComptroller(addr.unitroller).borrowCaps(addr.vWTAO), type(uint256).max, "vWTAO borrow cap");
         assertEq(IComptroller(addr.unitroller).borrowCaps(addr.vAlpha30), 0, "vAlpha30 borrow cap");
