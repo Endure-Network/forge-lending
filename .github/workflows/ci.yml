@@ -36,6 +36,8 @@ jobs:
           version: stable
       - name: Forge version
         run: forge --version
+      - name: Check behavior-mapping table covers all deletions
+        run: bash scripts/check-test-mapping.sh
       - name: Run all Foundry tests (unit + integration + invariant)
         run: forge test --root packages/contracts -v
       - name: Gas snapshot regression check
