@@ -23,3 +23,6 @@ packages/deploy/cache/
 
 # Sisyphus evidence (per-run, not tracked)
 .sisyphus/evidence/
+
+# Local git worktrees
+.worktrees/
