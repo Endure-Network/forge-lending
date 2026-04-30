@@ -27,13 +27,22 @@ contract DeployWithOptionals is Script {
             xvs = _enableXVSRewards(helper, addr, deployer);
         }
 
-        require(!enableVAI, "DeployWithOptionals: ENABLE_VAI not implemented yet");
-        require(!enableLiquidator, "DeployWithOptionals: ENABLE_LIQUIDATOR not implemented yet");
+        EndureDeployHelper.VAIAddresses memory vaiAddresses;
+        if (enableVAI) {
+            vaiAddresses = _enableVAI(helper, addr, deployer);
+        }
+
+        EndureDeployHelper.LiquidatorAddresses memory liquidatorAddresses;
+        if (enableLiquidator) {
+            require(enableVAI, "DeployWithOptionals: ENABLE_LIQUIDATOR requires ENABLE_VAI");
+            liquidatorAddresses = _enableLiquidator(helper, addr);
+        }
+
         require(!enablePrime, "DeployWithOptionals: ENABLE_PRIME not implemented yet");
 
         vm.stopBroadcast();
 
-        _writeAddresses(addr, xvs, enableVAI, enableLiquidator, enablePrime);
+        _writeAddresses(addr, xvs, vaiAddresses, liquidatorAddresses, enableVAI, enableLiquidator, enablePrime);
     }
 
     function _enableXVSRewards(
@@ -61,9 +70,47 @@ contract DeployWithOptionals is Script {
         return address(xvs);
     }
 
+    function _enableVAI(
+        EndureDeployHelper helper,
+        EndureDeployHelper.Addresses memory addr,
+        address deployer
+    ) internal returns (EndureDeployHelper.VAIAddresses memory vaiAddresses) {
+        EndureDeployHelper.VAIConfig memory config = EndureDeployHelper.VAIConfig({
+            vaiMintRate: vm.envOr("VAI_MINT_RATE", uint256(5_000)),
+            mintCap: vm.envOr("VAI_MINT_CAP", uint256(1_000_000e18)),
+            receiver: vm.envOr("VAI_RECEIVER", deployer),
+            treasuryGuardian: vm.envOr("VAI_TREASURY_GUARDIAN", deployer),
+            treasuryAddress: vm.envOr("VAI_TREASURY_ADDRESS", deployer),
+            treasuryPercent: vm.envOr("VAI_TREASURY_PERCENT", uint256(0)),
+            baseRateMantissa: vm.envOr("VAI_BASE_RATE", uint256(0)),
+            floatRateMantissa: vm.envOr("VAI_FLOAT_RATE", uint256(0))
+        });
+
+        bytes memory vaiCreationCode = abi.encodePacked(
+            vm.getCode("../contracts/out/VAI.sol/VAI.json"),
+            abi.encode(block.chainid)
+        );
+        return helper.deployVAIOptional(addr, config, vaiCreationCode);
+    }
+
+    function _enableLiquidator(
+        EndureDeployHelper helper,
+        EndureDeployHelper.Addresses memory addr
+    ) internal returns (EndureDeployHelper.LiquidatorAddresses memory liquidatorAddresses) {
+        EndureDeployHelper.LiquidatorConfig memory config = EndureDeployHelper.LiquidatorConfig({
+            treasuryPercentMantissa: vm.envOr("LIQUIDATOR_TREASURY_PERCENT", uint256(0.05e18)),
+            minLiquidatableVAI: vm.envOr("LIQUIDATOR_MIN_LIQUIDATABLE_VAI", uint256(0)),
+            pendingRedeemChunkLength: vm.envOr("LIQUIDATOR_PENDING_REDEEM_CHUNK_LENGTH", uint256(10))
+        });
+
+        return helper.deployLiquidatorOptional(addr, config);
+    }
+
     function _writeAddresses(
         EndureDeployHelper.Addresses memory addr,
         address xvs,
+        EndureDeployHelper.VAIAddresses memory vaiAddresses,
+        EndureDeployHelper.LiquidatorAddresses memory liquidatorAddresses,
         bool enableVAI,
         bool enableLiquidator,
         bool enablePrime
@@ -87,9 +134,12 @@ contract DeployWithOptionals is Script {
         vm.serializeAddress(json, "mockAlpha64", addr.mockAlpha64);
 
         vm.serializeAddress(json, "xvs", xvs);
-        vm.serializeAddress(json, "vai", address(0));
-        vm.serializeAddress(json, "vaiController", address(0));
-        vm.serializeAddress(json, "liquidator", address(0));
+        vm.serializeAddress(json, "vai", vaiAddresses.vai);
+        vm.serializeAddress(json, "vaiController", vaiAddresses.vaiController);
+        vm.serializeAddress(json, "vaiControllerImplementation", vaiAddresses.vaiControllerImplementation);
+        vm.serializeAddress(json, "liquidator", liquidatorAddresses.liquidator);
+        vm.serializeAddress(json, "liquidatorImplementation", liquidatorAddresses.liquidatorImplementation);
+        vm.serializeAddress(json, "protocolShareReserve", liquidatorAddresses.protocolShareReserve);
         vm.serializeAddress(json, "prime", address(0));
         vm.serializeAddress(json, "primeLiquidityProvider", address(0));
         vm.serializeBool(json, "enableVAI", enableVAI);
