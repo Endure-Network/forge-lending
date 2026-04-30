@@ -21,9 +21,9 @@ contract DiamondSelectorRoutingTest is Test {
 
     // ─── Selector helpers ─────────────────────────────────────────────────────
 
-    /// @dev 31 spike selectors + 2 new = 33 total
+    /// @dev 31 spike selectors + 3 new = 34 total
     function _marketFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](33);
+        s = new bytes4[](34);
         // Logic functions (from spike verbatim)
         s[0] = MarketFacet.isComptroller.selector;
         s[1] = bytes4(keccak256("liquidateCalculateSeizeTokens(address,address,uint256)"));
@@ -57,9 +57,10 @@ contract DiamondSelectorRoutingTest is Test {
         s[28] = bytes4(keccak256("supplyCaps(address)"));
         s[29] = bytes4(keccak256("approvedDelegates(address,address)"));
         s[30] = bytes4(keccak256("isForcedLiquidationEnabled(address)"));
-        // New selectors (Stage B expansion)
-        s[31] = bytes4(keccak256("venusSupplySpeeds(address)"));
-        s[32] = bytes4(keccak256("venusBorrowSpeeds(address)"));
+        // New selectors (Stage B expansion + Liquidator optional path)
+        s[31] = bytes4(keccak256("actionPaused(address,uint8)"));
+        s[32] = bytes4(keccak256("venusSupplySpeeds(address)"));
+        s[33] = bytes4(keccak256("venusBorrowSpeeds(address)"));
     }
 
     /// @dev 16 spike selectors + 1 new = 17 total
@@ -86,9 +87,9 @@ contract DiamondSelectorRoutingTest is Test {
         s[16] = bytes4(keccak256("_setVenusSpeeds(address[],uint256[],uint256[])"));
     }
 
-    /// @dev 12 spike selectors + 1 new = 13 total
+    /// @dev 12 spike selectors + 5 new = 17 total
     function _setterFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](13);
+        s = new bytes4[](17);
         // From spike verbatim
         s[0] = SetterFacet._setPriceOracle.selector;
         s[1] = SetterFacet._setComptrollerLens.selector;
@@ -102,8 +103,12 @@ contract DiamondSelectorRoutingTest is Test {
         s[9] = SetterFacet._setLiquidatorContract.selector;
         s[10] = SetterFacet._setPauseGuardian.selector;
         s[11] = SetterFacet._setProtocolPaused.selector;
-        // New selector (Stage B expansion)
+        // New selectors (Stage B expansion + VAI optional path)
         s[12] = bytes4(keccak256("_setXVSToken(address)"));
+        s[13] = SetterFacet._setVAIController.selector;
+        s[14] = SetterFacet._setVAIMintRate.selector;
+        s[15] = SetterFacet.setMintedVAIOf.selector;
+        s[16] = bytes4(keccak256("_setActionsPaused(address[],uint8[],bool)"));
     }
 
     /// @dev 2 spike selectors + 6 new = 8 total
@@ -128,7 +133,7 @@ contract DiamondSelectorRoutingTest is Test {
             + _policyFacetSelectors().length
             + _setterFacetSelectors().length
             + _rewardFacetSelectors().length;
-        assertEq(total, 71, "Expected exactly 71 selectors");
+        assertEq(total, 76, "Expected exactly 76 selectors");
     }
 
     function test_AllSelectorsRoutedCorrectly() public {

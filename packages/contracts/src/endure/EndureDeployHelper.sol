@@ -15,11 +15,17 @@ import {RewardFacet} from "../Comptroller/Diamond/facets/RewardFacet.sol";
 import {ComptrollerLens} from "../Lens/ComptrollerLens.sol";
 import {InterestRateModelV8} from "../InterestRateModels/InterestRateModelV8.sol";
 import {TwoKinksInterestRateModel} from "../InterestRateModels/TwoKinksInterestRateModel.sol";
+import {Liquidator} from "../Liquidator/Liquidator.sol";
+import {VAIController} from "../Tokens/VAI/VAIController.sol";
+import {VAIControllerInterface} from "../Tokens/VAI/VAIControllerInterface.sol";
+import {VAIUnitroller} from "../Tokens/VAI/VAIUnitroller.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {MockResilientOracle} from "./MockResilientOracle.sol";
 import {AllowAllAccessControlManager} from "./AllowAllAccessControlManager.sol";
 import {EnduRateModelParamsVenus} from "./EnduRateModelParams.sol";
+import {LocalProtocolShareReserve} from "./LocalProtocolShareReserve.sol";
 import {WTAO} from "./WTAO.sol";
 import {MockAlpha30} from "./MockAlpha30.sol";
 import {MockAlpha64} from "./MockAlpha64.sol";
@@ -46,6 +52,35 @@ contract EndureDeployHelper {
         address wtao;
         address mockAlpha30;
         address mockAlpha64;
+    }
+
+    struct VAIAddresses {
+        address vai;
+        address vaiController;
+        address vaiControllerImplementation;
+    }
+
+    struct VAIConfig {
+        uint256 vaiMintRate;
+        uint256 mintCap;
+        address receiver;
+        address treasuryGuardian;
+        address treasuryAddress;
+        uint256 treasuryPercent;
+        uint256 baseRateMantissa;
+        uint256 floatRateMantissa;
+    }
+
+    struct LiquidatorAddresses {
+        address liquidator;
+        address liquidatorImplementation;
+        address protocolShareReserve;
+    }
+
+    struct LiquidatorConfig {
+        uint256 treasuryPercentMantissa;
+        uint256 minLiquidatableVAI;
+        uint256 pendingRedeemChunkLength;
     }
 
     /// @notice Stores the most recent successful deployAll() result so off-chain
@@ -222,6 +257,114 @@ contract EndureDeployHelper {
         PolicyFacet(address(deployedUnitroller))._setVenusSpeeds(rewardMarkets, supplySpeeds, borrowSpeeds);
     }
 
+    function deployVAIOptional(
+        Addresses memory addrs,
+        VAIConfig memory config,
+        bytes memory vaiCreationCode
+    ) external returns (VAIAddresses memory vaiAddrs) {
+        require(deployedUnitroller != address(0), "not deployed");
+        require(addrs.unitroller == deployedUnitroller, "wrong unitroller");
+        require(vaiCreationCode.length != 0, "empty VAI code");
+        require(config.receiver != address(0), "receiver zero");
+        require(config.treasuryGuardian != address(0), "treasury guardian zero");
+        require(config.treasuryAddress != address(0), "treasury zero");
+
+        address vai = _deployVAI(vaiCreationCode);
+        VAIUnitroller vaiUnitroller = new VAIUnitroller();
+        VAIController vaiControllerImplementation = new VAIController();
+
+        require(
+            vaiUnitroller._setPendingImplementation(address(vaiControllerImplementation)) == 0,
+            "set VAI implementation"
+        );
+        vaiControllerImplementation._become(vaiUnitroller);
+
+        VAIController liveVAIController = VAIController(address(vaiUnitroller));
+        liveVAIController.initialize();
+        _relyVAI(vai, address(vaiUnitroller));
+        liveVAIController.setVAIToken(vai);
+        liveVAIController.setAccessControl(addrs.accessControlManager);
+        require(liveVAIController._setComptroller(ComptrollerInterface(addrs.unitroller)) == 0, "set VAI comptroller");
+
+        SetterFacet liveSetter = SetterFacet(addrs.unitroller);
+        require(
+            liveSetter._setVAIController(VAIControllerInterface(address(vaiUnitroller))) == 0,
+            "set comptroller VAI controller"
+        );
+        require(liveSetter._setVAIMintRate(config.vaiMintRate) == 0, "set VAI mint rate");
+
+        liveVAIController.setReceiver(config.receiver);
+        require(
+            liveVAIController._setTreasuryData(
+                config.treasuryGuardian,
+                config.treasuryAddress,
+                config.treasuryPercent
+            ) == 0,
+            "set VAI treasury"
+        );
+        liveVAIController.setBaseRate(config.baseRateMantissa);
+        liveVAIController.setFloatRate(config.floatRateMantissa);
+        liveVAIController.setMintCap(config.mintCap);
+        MockResilientOracle(addrs.resilientOracle).setUnderlyingPrice(vai, 1e18);
+
+        vaiAddrs.vai = vai;
+        vaiAddrs.vaiController = address(vaiUnitroller);
+        vaiAddrs.vaiControllerImplementation = address(vaiControllerImplementation);
+    }
+
+    function deployLiquidatorOptional(
+        Addresses memory addrs,
+        LiquidatorConfig memory config
+    ) external returns (LiquidatorAddresses memory liquidatorAddrs) {
+        require(deployedUnitroller != address(0), "not deployed");
+        require(addrs.unitroller == deployedUnitroller, "wrong unitroller");
+        require(_readAddress(addrs.unitroller, "vaiController()") != address(0), "VAI required");
+        require(config.pendingRedeemChunkLength != 0, "chunk length zero");
+
+        LocalProtocolShareReserve protocolShareReserve = new LocalProtocolShareReserve();
+        Liquidator liquidatorImplementation = new Liquidator(
+            addrs.unitroller,
+            payable(address(0x000000000000000000000000000000000000bEEF)),
+            addrs.wtao
+        );
+        bytes memory initData = abi.encodeCall(
+            Liquidator.initialize,
+            (config.treasuryPercentMantissa, addrs.accessControlManager, address(protocolShareReserve))
+        );
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(liquidatorImplementation),
+            address(0x000000000000000000000000000000000000AD01),
+            initData
+        );
+
+        Liquidator liveLiquidator = Liquidator(payable(address(proxy)));
+        liveLiquidator.setMinLiquidatableVAI(config.minLiquidatableVAI);
+        liveLiquidator.setPendingRedeemChunkLength(config.pendingRedeemChunkLength);
+        SetterFacet(addrs.unitroller)._setLiquidatorContract(address(proxy));
+
+        liquidatorAddrs.liquidator = address(proxy);
+        liquidatorAddrs.liquidatorImplementation = address(liquidatorImplementation);
+        liquidatorAddrs.protocolShareReserve = address(protocolShareReserve);
+    }
+
+    function _readAddress(address target, string memory signature) internal view returns (address value) {
+        (bool ok, bytes memory data) = target.staticcall(abi.encodeWithSignature(signature));
+        require(ok, "address read failed");
+        value = abi.decode(data, (address));
+    }
+
+    function _deployVAI(bytes memory vaiCreationCode) internal returns (address vai) {
+        assembly {
+            vai := create(0, add(vaiCreationCode, 0x20), mload(vaiCreationCode))
+        }
+        require(vai != address(0), "deploy VAI failed");
+    }
+
+    function _relyVAI(address vai, address ward) internal {
+        (bool ok,) = vai.call(abi.encodeWithSignature("rely(address)", ward));
+        require(ok, "VAI rely failed");
+    }
+
     function _configurePhase3(SetterFacet liveSetter, Addresses memory addrs) internal {
         require(liveSetter.setCollateralFactor(VToken(addrs.vWTAO), 0, 0) == 0, "cf vWTAO");
         require(liveSetter.setCollateralFactor(VToken(addrs.vAlpha30), 0.25e18, 0.35e18) == 0, "cf vAlpha30");
@@ -297,7 +440,7 @@ contract EndureDeployHelper {
     }
 
     function _marketFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](33);
+        s = new bytes4[](34);
         s[0] = MarketFacet.isComptroller.selector;
         s[1] = bytes4(keccak256("liquidateCalculateSeizeTokens(address,address,uint256)"));
         s[2] = bytes4(keccak256("liquidateCalculateSeizeTokens(address,address,address,uint256)"));
@@ -329,8 +472,9 @@ contract EndureDeployHelper {
         s[28] = bytes4(keccak256("supplyCaps(address)"));
         s[29] = bytes4(keccak256("approvedDelegates(address,address)"));
         s[30] = bytes4(keccak256("isForcedLiquidationEnabled(address)"));
-        s[31] = bytes4(keccak256("venusSupplySpeeds(address)"));
-        s[32] = bytes4(keccak256("venusBorrowSpeeds(address)"));
+        s[31] = bytes4(keccak256("actionPaused(address,uint8)"));
+        s[32] = bytes4(keccak256("venusSupplySpeeds(address)"));
+        s[33] = bytes4(keccak256("venusBorrowSpeeds(address)"));
     }
 
     function _policyFacetSelectors() internal pure returns (bytes4[] memory s) {
@@ -355,7 +499,7 @@ contract EndureDeployHelper {
     }
 
     function _setterFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](13);
+        s = new bytes4[](17);
         s[0] = SetterFacet._setPriceOracle.selector;
         s[1] = SetterFacet._setComptrollerLens.selector;
         s[2] = SetterFacet._setAccessControl.selector;
@@ -369,6 +513,10 @@ contract EndureDeployHelper {
         s[10] = SetterFacet._setPauseGuardian.selector;
         s[11] = SetterFacet._setProtocolPaused.selector;
         s[12] = bytes4(keccak256("_setXVSToken(address)"));
+        s[13] = SetterFacet._setVAIController.selector;
+        s[14] = SetterFacet._setVAIMintRate.selector;
+        s[15] = SetterFacet.setMintedVAIOf.selector;
+        s[16] = bytes4(keccak256("_setActionsPaused(address[],uint8[],bool)"));
     }
 
     function _rewardFacetSelectors() internal pure returns (bytes4[] memory s) {
