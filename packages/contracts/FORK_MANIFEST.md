@@ -123,6 +123,19 @@ Endure deliberately diverges from the Venus toolchain to maintain a leaner depen
 - **Typechain Resolution**: Endure resolves Typechain targets from `./typechain-types` directly, whereas Venus often uses remapped `typechain/` paths. This is reflected in the 26 patches documented in §5.2.
 - **`hardhat-deploy` auto-run on `hardhat node` disabled**: Per-network `deploy: []` override in `hardhat.config.ts` for both the in-process `hardhat` network and the `localhost` network, suppressing the plugin's default behavior of executing every script in `deploy/` on node startup. The vendored Venus `deploy/*.ts` chain has 3 module-load gaps under Endure's vendoring scope (see §4.3); vendoring upstream's full transitive surface (~12 MB of production state) was rejected as scope-misaligned. Endure provides `packages/contracts/scripts/deploy-local.ts` as the on-demand replacement. No vendored Venus content was modified.
 
+### 7.3 Legacy Hardhat Parity Blocker
+The Venus parity optionals work captured a bounded baseline for the remaining Section B skips in `.sisyphus/evidence/venus-parity-optionals/hardhat-baseline.md`. With exclusions active, `bash scripts/check-hardhat-skips.sh` exits 0 and `pnpm --filter @endure/contracts hardhat test` exits 0 with 463 passing tests. Temporarily removing only the remediation-target exclusions reproduced the documented W5/W6/W7/W11/W12 failures.
+
+Three tooling-alignment attempts were tested and then reverted because none produced a safe, minimal path to restore those legacy suites in this branch:
+
+1. Adding Venus-style `module-alias` + `hardhat-deploy-ethers` aliasing and pinning `@defi-wonderland/smock` to `2.4.0` compiled successfully, but W5 still reported duplicate smock calls.
+2. Pinning the broader Venus runtime (`hardhat 2.22.18`, `ethers 5.7.2`, `@openzeppelin/hardhat-upgrades 1.21.0`, `@nomicfoundation/hardhat-network-helpers 1.0.10`, TypeChain pins) was not cleanly reproducible under this fork: TypeScript 4.7 cannot parse Endure's current `satisfies` syntax, and keeping TypeScript 5.x left W5/W11 duplicate-call failures unchanged.
+3. Forcing `@openzeppelin/upgrades-core 1.21.0` changed W6 from the modern missing-initializer validation failure into an older validator crash (`Cannot read properties of undefined (reading 'msg')`) and made W5 fail earlier during proxy validation.
+
+An upstream comparison confirmed the W5 Liquidator Solidity and test files are byte-identical to Venus `6400a067` except for expected import-path layout patches. The blocker is therefore a legacy Hardhat runtime/harness compatibility issue, not Venus source drift.
+
+The current execution path keeps W5/W6/W7/W11/W12 documented as deferred Section B skips and proceeds with optional-module deployment/configuration surfaces independently. If full legacy Hardhat parity becomes mandatory later, it should be handled as a dedicated compatibility track that first reproduces the exact upstream Venus lockfile/runtime, then evaluates minimal documented test-helper-only shims if the duplicate-call and validator behavior remains.
+
 ## 8. Stance B Audit Posture
 To verify byte-identity and audit parity:
 1. Identify the file in `src/` (excluding `src/endure/`).

@@ -28,7 +28,7 @@ These tests assume Binance Smart Chain mainnet — addresses, BNB-asset semantic
 
 ### B. Toolchain-Divergence Consequences
 
-These tests fail under Endure's Hardhat toolchain stack but would likely pass under Venus's. The root cause is documented in `packages/contracts/FORK_MANIFEST.md §7`. Endure's toolchain (`@nomiclabs/hardhat-ethers` v2.2.3, `hardhat` 2.28.6, `smock` 2.4.1, etc.) was inherited from the pre-Venus Endure setup and not realigned during the rebase. Re-enabling these tests requires a separate, focused PR for toolchain alignment with its own Momus review and Foundry-preservation gates.
+These tests fail under Endure's Hardhat toolchain stack but would likely pass under Venus's exact lockfile/runtime. The root cause is documented in `packages/contracts/FORK_MANIFEST.md §7`. Endure's toolchain (`@nomiclabs/hardhat-ethers` v2.2.3, `hardhat` 2.28.6, `smock` 2.4.1, etc.) was inherited from the pre-Venus Endure setup and not realigned during the rebase. A bounded 2026-04-30 alignment attempt reproduced the failures and is documented in `.sisyphus/evidence/venus-parity-optionals/hardhat-baseline.md` and `FORK_MANIFEST.md §7.3`; re-enabling these tests now requires a separate legacy-Hardhat compatibility track with its own Momus review and Foundry-preservation gates.
 
 | File | Wave | Behavioral failure | Likely toolchain cause |
 |---|---|---|---|
@@ -51,8 +51,8 @@ bash scripts/check-hardhat-skips.sh
 
 Two possible futures for the Section B failures:
 
-**Option A: Toolchain alignment (separate PR, deferred)**
-Replicate Venus's `_moduleAliases` + `hardhat-deploy-ethers` setup. Pin smock to 2.4.0 and hardhat to 2.22.18 via `resolutions`. Verify against the 6 failing tests in a throwaway worktree before committing. Risk: Foundry collateral damage; Venus's toolchain setup is non-trivial under pnpm.
+**Option A: Exact upstream runtime reproduction (separate PR, deferred)**
+Replicate Venus's exact lockfile/runtime, not just package ranges. A bounded attempt to add `_moduleAliases` + `hardhat-deploy-ethers`, pin smock to 2.4.0, pin Hardhat to 2.22.18, and align OpenZeppelin upgrades did not safely restore the Section B tests under this pnpm workspace. Future work should start from exact upstream lockfile reproduction in a dedicated worktree before changing this repo's default toolchain.
 
 **Option B: Accept divergence permanently**
 Treat the 6 Section B tests as documented gaps in Endure's coverage. They exercise behaviors (smock call counts, OZ proxy validation, ethers BigNumber edges) that are tangential to Endure's protocol-correctness story (which is covered by the 43/43 Foundry suite + 463 passing Hardhat tests + e2e-smoke).
