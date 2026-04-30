@@ -37,6 +37,7 @@ jobs:
   contracts-test:
     name: forge test + gas snapshot
     runs-on: ubuntu-latest
+    needs: [contracts-build]
     steps:
       - uses: actions/checkout@v6
       - name: Install Foundry
