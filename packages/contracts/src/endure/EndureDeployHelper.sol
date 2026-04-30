@@ -16,6 +16,9 @@ import {ComptrollerLens} from "../Lens/ComptrollerLens.sol";
 import {InterestRateModelV8} from "../InterestRateModels/InterestRateModelV8.sol";
 import {TwoKinksInterestRateModel} from "../InterestRateModels/TwoKinksInterestRateModel.sol";
 import {Liquidator} from "../Liquidator/Liquidator.sol";
+import {IPrime} from "../Tokens/Prime/IPrime.sol";
+import {Prime} from "../Tokens/Prime/Prime.sol";
+import {PrimeLiquidityProvider} from "../Tokens/Prime/PrimeLiquidityProvider.sol";
 import {VAIController} from "../Tokens/VAI/VAIController.sol";
 import {VAIControllerInterface} from "../Tokens/VAI/VAIControllerInterface.sol";
 import {VAIUnitroller} from "../Tokens/VAI/VAIUnitroller.sol";
@@ -81,6 +84,40 @@ contract EndureDeployHelper {
         uint256 treasuryPercentMantissa;
         uint256 minLiquidatableVAI;
         uint256 pendingRedeemChunkLength;
+    }
+
+    struct PrimeAddresses {
+        address prime;
+        address primeImplementation;
+        address primeLiquidityProvider;
+        address primeLiquidityProviderImplementation;
+        address xvsVault;
+        address xvsVaultImplementation;
+        address xvsStore;
+    }
+
+    struct PrimeConfig {
+        uint256 blocksPerYear;
+        uint256 stakingPeriod;
+        uint256 minimumStakedXVS;
+        uint256 maximumXVSCap;
+        uint256 xvsVaultPoolId;
+        uint256 xvsVaultRewardPerBlock;
+        uint256 xvsVaultLockPeriod;
+        uint128 alphaNumerator;
+        uint128 alphaDenominator;
+        uint256 loopsLimit;
+        uint256 irrevocableLimit;
+        uint256 revocableLimit;
+        address[] primeMarkets;
+        uint256[] supplyMultipliers;
+        uint256[] borrowMultipliers;
+    }
+
+    struct PrimeBytecode {
+        bytes xvsVaultProxyCreationCode;
+        bytes xvsVaultCreationCode;
+        bytes xvsStoreCreationCode;
     }
 
     /// @notice Stores the most recent successful deployAll() result so off-chain
@@ -347,6 +384,157 @@ contract EndureDeployHelper {
         liquidatorAddrs.protocolShareReserve = address(protocolShareReserve);
     }
 
+    function deployPrimeOptional(
+        Addresses memory addrs,
+        address xvsToken,
+        PrimeConfig memory config,
+        PrimeBytecode memory bytecode
+    ) external returns (PrimeAddresses memory primeAddrs) {
+        require(deployedUnitroller != address(0), "not deployed");
+        require(addrs.unitroller == deployedUnitroller, "wrong unitroller");
+        require(xvsToken != address(0), "XVS zero");
+        require(config.alphaNumerator != 0 && config.alphaNumerator < config.alphaDenominator, "bad alpha");
+        require(config.loopsLimit != 0, "loops zero");
+        require(config.primeMarkets.length == config.supplyMultipliers.length, "supply length");
+        require(config.primeMarkets.length == config.borrowMultipliers.length, "borrow length");
+        require(bytecode.xvsVaultProxyCreationCode.length != 0, "empty vault proxy code");
+        require(bytecode.xvsVaultCreationCode.length != 0, "empty vault code");
+        require(bytecode.xvsStoreCreationCode.length != 0, "empty store code");
+
+        (primeAddrs.xvsVault, primeAddrs.xvsVaultImplementation, primeAddrs.xvsStore) = _deployPrimeVault(
+            xvsToken,
+            addrs.accessControlManager,
+            config,
+            bytecode
+        );
+        (primeAddrs.primeLiquidityProvider, primeAddrs.primeLiquidityProviderImplementation) = _deployPrimeLiquidityProvider(
+            addrs.accessControlManager,
+            config.blocksPerYear,
+            config.loopsLimit
+        );
+        (primeAddrs.prime, primeAddrs.primeImplementation) = _deployPrimeToken(
+            addrs,
+            xvsToken,
+            config,
+            primeAddrs.xvsVault,
+            primeAddrs.primeLiquidityProvider
+        );
+        _configurePrime(addrs, xvsToken, config, primeAddrs);
+    }
+
+    function _deployPrimeVault(
+        address xvsToken,
+        address accessControlManager,
+        PrimeConfig memory config,
+        PrimeBytecode memory bytecode
+    ) internal returns (address xvsVaultProxy, address xvsVaultImplementation, address xvsStore) {
+        xvsStore = _deployBytecode(bytecode.xvsStoreCreationCode, "deploy XVS store failed");
+        xvsVaultProxy = _deployBytecode(bytecode.xvsVaultProxyCreationCode, "deploy XVS vault proxy failed");
+        xvsVaultImplementation = _deployBytecode(bytecode.xvsVaultCreationCode, "deploy XVS vault failed");
+
+        _callUint(xvsVaultProxy, abi.encodeWithSignature("_setPendingImplementation(address)", xvsVaultImplementation), "set vault implementation");
+        _call(xvsVaultImplementation, abi.encodeWithSignature("_become(address)", xvsVaultProxy), "become vault");
+        _call(xvsVaultProxy, abi.encodeWithSignature("setXvsStore(address,address)", xvsToken, xvsStore), "set XVS store");
+        _call(xvsVaultProxy, abi.encodeWithSignature("setAccessControl(address)", accessControlManager), "set vault access control");
+        _call(xvsVaultProxy, abi.encodeWithSignature("initializeTimeManager(bool,uint256)", false, config.blocksPerYear), "init vault time");
+        _call(xvsStore, abi.encodeWithSignature("setNewOwner(address)", xvsVaultProxy), "set store owner");
+        _call(
+            xvsVaultProxy,
+            abi.encodeWithSignature("add(address,uint256,address,uint256,uint256)", xvsToken, uint256(100), xvsToken, config.xvsVaultRewardPerBlock, config.xvsVaultLockPeriod),
+            "add vault pool"
+        );
+    }
+
+    function _deployPrimeLiquidityProvider(
+        address accessControlManager,
+        uint256 blocksPerYear,
+        uint256 loopsLimit
+    ) internal returns (address plp, address plpImplementation) {
+        PrimeLiquidityProvider implementation = new PrimeLiquidityProvider(false, blocksPerYear);
+        address[] memory emptyTokens = new address[](0);
+        uint256[] memory emptySpeeds = new uint256[](0);
+        bytes memory initData = abi.encodeCall(
+            PrimeLiquidityProvider.initialize,
+            (accessControlManager, emptyTokens, emptySpeeds, emptySpeeds, loopsLimit)
+        );
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(implementation),
+            address(0x000000000000000000000000000000000000Ad02),
+            initData
+        );
+        plp = address(proxy);
+        plpImplementation = address(implementation);
+    }
+
+    function _deployPrimeToken(
+        Addresses memory addrs,
+        address xvsToken,
+        PrimeConfig memory config,
+        address xvsVault,
+        address plp
+    ) internal returns (address prime, address primeImplementation) {
+        Prime implementation = new Prime(
+            addrs.wtao,
+            addrs.vWTAO,
+            config.blocksPerYear,
+            config.stakingPeriod,
+            config.minimumStakedXVS,
+            config.maximumXVSCap,
+            false
+        );
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(implementation),
+            address(0x000000000000000000000000000000000000ad03),
+            _primeInitData(addrs, xvsToken, config, xvsVault, plp)
+        );
+        prime = address(proxy);
+        primeImplementation = address(implementation);
+    }
+
+    function _primeInitData(
+        Addresses memory addrs,
+        address xvsToken,
+        PrimeConfig memory config,
+        address xvsVault,
+        address plp
+    ) internal pure returns (bytes memory) {
+        return abi.encodeWithSelector(
+            Prime.initialize.selector,
+            xvsVault,
+            xvsToken,
+            config.xvsVaultPoolId,
+            config.alphaNumerator,
+            config.alphaDenominator,
+            addrs.accessControlManager,
+            plp,
+            addrs.unitroller,
+            addrs.resilientOracle,
+            config.loopsLimit
+        );
+    }
+
+    function _configurePrime(
+        Addresses memory addrs,
+        address xvsToken,
+        PrimeConfig memory config,
+        PrimeAddresses memory primeAddrs
+    ) internal {
+        Prime livePrime = Prime(payable(primeAddrs.prime));
+        PrimeLiquidityProvider(payable(primeAddrs.primeLiquidityProvider)).setPrimeToken(primeAddrs.prime);
+        _call(
+            primeAddrs.xvsVault,
+            abi.encodeWithSignature("setPrimeToken(address,address,uint256)", primeAddrs.prime, xvsToken, config.xvsVaultPoolId),
+            "set vault prime"
+        );
+        livePrime.initializeV2(address(0));
+        livePrime.setLimit(config.irrevocableLimit, config.revocableLimit);
+        for (uint256 i; i < config.primeMarkets.length; i++) {
+            livePrime.addMarket(addrs.unitroller, config.primeMarkets[i], config.supplyMultipliers[i], config.borrowMultipliers[i]);
+        }
+        require(SetterFacet(addrs.unitroller)._setPrimeToken(IPrime(primeAddrs.prime)) == 0, "set comptroller prime");
+        livePrime.togglePause();
+    }
+
     function _readAddress(address target, string memory signature) internal view returns (address value) {
         (bool ok, bytes memory data) = target.staticcall(abi.encodeWithSignature(signature));
         require(ok, "address read failed");
@@ -354,15 +542,30 @@ contract EndureDeployHelper {
     }
 
     function _deployVAI(bytes memory vaiCreationCode) internal returns (address vai) {
+        vai = _deployBytecode(vaiCreationCode, "deploy VAI failed");
+    }
+
+    function _deployBytecode(bytes memory creationCode, string memory errorMessage) internal returns (address deployed) {
         assembly {
-            vai := create(0, add(vaiCreationCode, 0x20), mload(vaiCreationCode))
+            deployed := create(0, add(creationCode, 0x20), mload(creationCode))
         }
-        require(vai != address(0), "deploy VAI failed");
+        require(deployed != address(0), errorMessage);
     }
 
     function _relyVAI(address vai, address ward) internal {
         (bool ok,) = vai.call(abi.encodeWithSignature("rely(address)", ward));
         require(ok, "VAI rely failed");
+    }
+
+    function _call(address target, bytes memory data, string memory errorMessage) internal {
+        (bool ok,) = target.call(data);
+        require(ok, errorMessage);
+    }
+
+    function _callUint(address target, bytes memory data, string memory errorMessage) internal {
+        (bool ok, bytes memory result) = target.call(data);
+        require(ok, errorMessage);
+        require(abi.decode(result, (uint256)) == 0, errorMessage);
     }
 
     function _configurePhase3(SetterFacet liveSetter, Addresses memory addrs) internal {
@@ -499,7 +702,7 @@ contract EndureDeployHelper {
     }
 
     function _setterFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](17);
+        s = new bytes4[](19);
         s[0] = SetterFacet._setPriceOracle.selector;
         s[1] = SetterFacet._setComptrollerLens.selector;
         s[2] = SetterFacet._setAccessControl.selector;
@@ -517,6 +720,8 @@ contract EndureDeployHelper {
         s[14] = SetterFacet._setVAIMintRate.selector;
         s[15] = SetterFacet.setMintedVAIOf.selector;
         s[16] = bytes4(keccak256("_setActionsPaused(address[],uint8[],bool)"));
+        s[17] = SetterFacet.setPrimeToken.selector;
+        s[18] = SetterFacet._setPrimeToken.selector;
     }
 
     function _rewardFacetSelectors() internal pure returns (bytes4[] memory s) {

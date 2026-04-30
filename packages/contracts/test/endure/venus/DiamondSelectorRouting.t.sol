@@ -87,9 +87,9 @@ contract DiamondSelectorRoutingTest is Test {
         s[16] = bytes4(keccak256("_setVenusSpeeds(address[],uint256[],uint256[])"));
     }
 
-    /// @dev 12 spike selectors + 5 new = 17 total
+    /// @dev 12 spike selectors + 7 new = 19 total
     function _setterFacetSelectors() internal pure returns (bytes4[] memory s) {
-        s = new bytes4[](17);
+        s = new bytes4[](19);
         // From spike verbatim
         s[0] = SetterFacet._setPriceOracle.selector;
         s[1] = SetterFacet._setComptrollerLens.selector;
@@ -109,6 +109,8 @@ contract DiamondSelectorRoutingTest is Test {
         s[14] = SetterFacet._setVAIMintRate.selector;
         s[15] = SetterFacet.setMintedVAIOf.selector;
         s[16] = bytes4(keccak256("_setActionsPaused(address[],uint8[],bool)"));
+        s[17] = SetterFacet.setPrimeToken.selector;
+        s[18] = SetterFacet._setPrimeToken.selector;
     }
 
     /// @dev 2 spike selectors + 6 new = 8 total
@@ -133,7 +135,7 @@ contract DiamondSelectorRoutingTest is Test {
             + _policyFacetSelectors().length
             + _setterFacetSelectors().length
             + _rewardFacetSelectors().length;
-        assertEq(total, 76, "Expected exactly 76 selectors");
+        assertEq(total, 78, "Expected exactly 78 selectors");
     }
 
     function test_AllSelectorsRoutedCorrectly() public {
