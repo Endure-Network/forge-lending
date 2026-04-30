@@ -17,7 +17,7 @@ After deploy completes, `addresses.json` is written to this directory and consum
 
 ## Optional modules
 
-`DeployWithOptionals.s.sol` keeps the default deployment unchanged and writes a separate `addresses-optionals.json` for opt-in consumers. XVS rewards are the first supported optional path:
+`DeployWithOptionals.s.sol` keeps the default deployment unchanged and writes a separate `addresses-optionals.json` for opt-in consumers. XVS rewards, VAI, and the Liquidator are supported optional paths:
 
 ```bash
 ENABLE_XVS=true forge script src/DeployWithOptionals.s.sol \
@@ -31,7 +31,40 @@ Optional XVS configuration knobs:
 - `XVS_VWTAO_SUPPLY_SPEED` — vWTAO supply reward speed, default `1e18`.
 - `XVS_VWTAO_BORROW_SPEED` — vWTAO borrow reward speed, default `0`.
 
-`ENABLE_VAI`, `ENABLE_LIQUIDATOR`, and `ENABLE_PRIME` are reserved for later optional paths and currently fail fast with a clear message if enabled.
+Optional VAI deployment:
+
+```bash
+ENABLE_VAI=true forge script src/DeployWithOptionals.s.sol \
+    --rpc-url http://localhost:8545 --broadcast --slow --legacy \
+    --code-size-limit 999999
+```
+
+VAI configuration knobs:
+
+- `VAI_MINT_RATE` — collateral value basis points available for VAI minting, default `5000`.
+- `VAI_MINT_CAP` — global VAI supply cap, default `1000000e18`.
+- `VAI_RECEIVER` — stability-fee receiver, default deployer.
+- `VAI_TREASURY_GUARDIAN` — VAI treasury guardian, default deployer.
+- `VAI_TREASURY_ADDRESS` — VAI mint-fee treasury, default deployer.
+- `VAI_TREASURY_PERCENT` — mint fee percentage scaled by `1e18`, default `0`.
+- `VAI_BASE_RATE` — base stability fee scaled by `1e18`, default `0`.
+- `VAI_FLOAT_RATE` — floating stability fee scaled by `1e18`, default `0`.
+
+Optional Liquidator deployment requires VAI because the upstream Liquidator reads VAI debt during liquidation checks:
+
+```bash
+ENABLE_VAI=true ENABLE_LIQUIDATOR=true forge script src/DeployWithOptionals.s.sol \
+    --rpc-url http://localhost:8545 --broadcast --slow --legacy \
+    --code-size-limit 999999
+```
+
+Liquidator configuration knobs:
+
+- `LIQUIDATOR_TREASURY_PERCENT` — treasury share scaled by `1e18`, default `0.05e18`.
+- `LIQUIDATOR_MIN_LIQUIDATABLE_VAI` — minimum VAI debt for the VAI liquidation path, default `0`.
+- `LIQUIDATOR_PENDING_REDEEM_CHUNK_LENGTH` — pending redemption chunk size, default `10`.
+
+`ENABLE_PRIME` is reserved for a later optional path and currently fails fast with a clear message if enabled.
 
 ## Hardhat alternative
 
