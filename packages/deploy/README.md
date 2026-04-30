@@ -15,6 +15,24 @@ forge script src/DeployLocal.s.sol \
 
 After deploy completes, `addresses.json` is written to this directory and consumed by `scripts/e2e-smoke.sh`.
 
+## Optional modules
+
+`DeployWithOptionals.s.sol` keeps the default deployment unchanged and writes a separate `addresses-optionals.json` for opt-in consumers. XVS rewards are the first supported optional path:
+
+```bash
+ENABLE_XVS=true forge script src/DeployWithOptionals.s.sol \
+    --rpc-url http://localhost:8545 --broadcast --slow --legacy \
+    --code-size-limit 999999
+```
+
+Optional XVS configuration knobs:
+
+- `XVS_FUNDING_AMOUNT` — amount of mock XVS to fund the Comptroller with, default `1000e18`.
+- `XVS_VWTAO_SUPPLY_SPEED` — vWTAO supply reward speed, default `1e18`.
+- `XVS_VWTAO_BORROW_SPEED` — vWTAO borrow reward speed, default `0`.
+
+`ENABLE_VAI`, `ENABLE_LIQUIDATOR`, and `ENABLE_PRIME` are reserved for later optional paths and currently fail fast with a clear message if enabled.
+
 ## Hardhat alternative
 
 A parallel Hardhat-side deploy lives at `packages/contracts/scripts/deploy-local.ts`. It targets `pnpm hardhat node` (in-process or `localhost` network) and writes the same 16-key `addresses.json` schema by deploying the same `EndureDeployHelper` Solidity contract. Frontend and integration consumers that prefer the Hardhat toolchain (e.g., Next.js dev with ethers/viem) can use:

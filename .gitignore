@@ -10,6 +10,7 @@ packages/contracts/broadcast/
 # Foundry - deploy
 packages/deploy/broadcast/
 !packages/deploy/broadcast/addresses.json
+packages/deploy/addresses-optionals.json
 packages/deploy/out/
 packages/deploy/cache/
 
