@@ -17,7 +17,7 @@ After deploy completes, `addresses.json` is written to this directory and consum
 
 ## Optional modules
 
-`DeployWithOptionals.s.sol` keeps the default deployment unchanged and writes a separate `addresses-optionals.json` for opt-in consumers. XVS rewards, VAI, and the Liquidator are supported optional paths:
+`DeployWithOptionals.s.sol` keeps the default deployment unchanged and writes a separate `addresses-optionals.json` for opt-in consumers. XVS rewards, VAI, the Liquidator, and Prime are supported optional paths:
 
 ```bash
 ENABLE_XVS=true forge script src/DeployWithOptionals.s.sol \
@@ -64,7 +64,27 @@ Liquidator configuration knobs:
 - `LIQUIDATOR_MIN_LIQUIDATABLE_VAI` — minimum VAI debt for the VAI liquidation path, default `0`.
 - `LIQUIDATOR_PENDING_REDEEM_CHUNK_LENGTH` — pending redemption chunk size, default `10`.
 
-`ENABLE_PRIME` is reserved for a later optional path and currently fails fast with a clear message if enabled.
+Optional Prime deployment automatically enables the local XVS path because Prime needs an XVS token and XVSVault pool:
+
+```bash
+ENABLE_PRIME=true forge script src/DeployWithOptionals.s.sol \
+    --rpc-url http://localhost:8545 --broadcast --slow --legacy \
+    --code-size-limit 999999
+```
+
+Prime configuration knobs:
+
+- `PRIME_BLOCKS_PER_YEAR` — local block-based year length, default `100`.
+- `PRIME_STAKING_PERIOD` — seconds a user must stake before claiming Prime, default `600`.
+- `PRIME_MINIMUM_STAKED_XVS` — minimum XVS stake, default `1000e18`.
+- `PRIME_MAXIMUM_XVS_CAP` — maximum XVS counted in scores, default `100000e18`.
+- `PRIME_XVS_VAULT_POOL_ID` — XVSVault pool id, default `0`.
+- `PRIME_XVS_VAULT_REWARD_PER_BLOCK` — local vault reward rate, default `1e18`.
+- `PRIME_XVS_VAULT_LOCK_PERIOD` — vault withdrawal lock period, default `300`.
+- `PRIME_ALPHA_NUMERATOR` / `PRIME_ALPHA_DENOMINATOR` — Prime alpha ratio, defaults `1 / 2`.
+- `PRIME_LOOPS_LIMIT` — Max loops limit, default `20`.
+- `PRIME_IRREVOCABLE_LIMIT` / `PRIME_REVOCABLE_LIMIT` — mint limits, defaults `1000 / 1000`.
+- `PRIME_VWTAO_SUPPLY_MULTIPLIER` / `PRIME_VWTAO_BORROW_MULTIPLIER` — initial vWTAO Prime market multipliers, defaults `1e18 / 1e18`.
 
 ## Hardhat alternative
 
