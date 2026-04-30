@@ -184,3 +184,54 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run workspace tests
         run: pnpm -r test
+
+  e2e-smoke-hardhat:
+    name: live-chain E2E (hardhat)
+    runs-on: ubuntu-latest
+    needs: [contracts-hardhat-build]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Link hardhat libs
+        run: bash packages/contracts/scripts/link-hardhat-libs.sh
+      - name: Hardhat compile
+        run: pnpm --filter @endure/contracts hardhat compile
+      - name: Start hardhat node in background
+        run: |
+          cd packages/contracts
+          nohup pnpm hardhat node --hostname 127.0.0.1 --port 8545 > /tmp/hh-node.log 2>&1 &
+          for i in {1..30}; do
+            if curl -s -X POST http://localhost:8545 \
+                 -H "Content-Type: application/json" \
+                 --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+                 | grep -q '"result"'; then
+              echo "hardhat node up"
+              break
+            fi
+            sleep 1
+          done
+      - name: Verify clean boot (no HH604, no auto-run)
+        run: |
+          if grep -E "HH604|MODULE_NOT_FOUND|UnhandledRejection|ERROR processing skip func" /tmp/hh-node.log; then
+            echo "Hardhat node boot leaked errors"
+            exit 1
+          fi
+          if grep -E "deploying|Running deploy script|deploy/[0-9]+-" /tmp/hh-node.log; then
+            echo "hardhat-deploy auto-run unexpectedly executed"
+            exit 1
+          fi
+      - name: Deploy via scripts/deploy-local.ts
+        run: pnpm --filter @endure/contracts hardhat run scripts/deploy-local.ts --network localhost
+      - name: Smoke via scripts/smoke-local.ts
+        run: pnpm --filter @endure/contracts hardhat run scripts/smoke-local.ts --network localhost
+      - name: Tear down hardhat node
+        if: always()
+        run: pkill -f "hardhat node" || true
