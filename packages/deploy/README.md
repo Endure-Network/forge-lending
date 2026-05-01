@@ -80,6 +80,7 @@ Prime configuration knobs:
 - `PRIME_MAXIMUM_XVS_CAP` — maximum XVS counted in scores, default `100000e18`.
 - `PRIME_XVS_VAULT_POOL_ID` — XVSVault pool id, default `0`.
 - `PRIME_XVS_VAULT_REWARD_PER_BLOCK` — local vault reward rate, default `1e18`.
+- `PRIME_XVS_VAULT_REWARD_FUNDING_AMOUNT` — mock XVS amount transferred into XVSStore for local vault rewards, default `1000e18`.
 - `PRIME_XVS_VAULT_LOCK_PERIOD` — vault withdrawal lock period, default `300`.
 - `PRIME_ALPHA_NUMERATOR` / `PRIME_ALPHA_DENOMINATOR` — Prime alpha ratio, defaults `1 / 2`.
 - `PRIME_LOOPS_LIMIT` — Max loops limit, default `20`.
