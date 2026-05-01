@@ -16,6 +16,8 @@ contract PrimeOptionalTest is Test {
         helper = new EndureDeployHelper();
         addrs = helper.deployAll();
         xvs = new MockXVS();
+        xvs.mint(address(this), 10_000e18);
+        xvs.approve(address(helper), type(uint256).max);
     }
 
     function test_DeployPrimeOptional_WiresPrimeVaultLiquidityProviderAndComptroller() public {
@@ -53,6 +55,68 @@ contract PrimeOptionalTest is Test {
         assertEq(borrowMultiplier, 1e18, "borrow multiplier");
     }
 
+    function test_DeployPrimeOptional_UserCanStakeAndClaimPrimeToken() public {
+        EndureDeployHelper.PrimeAddresses memory primeAddrs = helper.deployPrimeOptional(
+            addrs,
+            address(xvs),
+            _defaultPrimeConfig(),
+            _primeBytecode()
+        );
+        address user = makeAddr("prime user");
+        uint256 stakeAmount = 1000e18;
+
+        xvs.mint(user, stakeAmount);
+
+        vm.startPrank(user);
+        xvs.approve(primeAddrs.xvsVault, stakeAmount);
+        IXVSVaultPrime(primeAddrs.xvsVault).deposit(address(xvs), 0, stakeAmount);
+        vm.warp(block.timestamp + 601);
+        Prime(payable(primeAddrs.prime)).claim();
+        vm.stopPrank();
+
+        assertTrue(Prime(payable(primeAddrs.prime)).isUserPrimeHolder(user), "prime holder");
+    }
+
+    function test_DeployPrimeOptional_FundsXVSStoreForVaultRewards() public {
+        EndureDeployHelper.PrimeAddresses memory primeAddrs = helper.deployPrimeOptional(
+            addrs,
+            address(xvs),
+            _defaultPrimeConfig(),
+            _primeBytecode()
+        );
+
+        assertEq(xvs.balanceOf(primeAddrs.xvsStore), 1000e18, "xvs store funding");
+    }
+
+    function test_DeployPrimeOptional_RevertsIfXVSZero() public {
+        vm.expectRevert(bytes("XVS zero"));
+        helper.deployPrimeOptional(addrs, address(0), _defaultPrimeConfig(), _primeBytecode());
+    }
+
+    function test_DeployPrimeOptional_RevertsIfAlphaRatioInvalid() public {
+        EndureDeployHelper.PrimeConfig memory config = _defaultPrimeConfig();
+        config.alphaNumerator = config.alphaDenominator;
+
+        vm.expectRevert(bytes("bad alpha"));
+        helper.deployPrimeOptional(addrs, address(xvs), config, _primeBytecode());
+    }
+
+    function test_DeployPrimeOptional_RevertsIfSupplyMultiplierLengthMismatchesMarkets() public {
+        EndureDeployHelper.PrimeConfig memory config = _defaultPrimeConfig();
+        config.supplyMultipliers = new uint256[](0);
+
+        vm.expectRevert(bytes("supply length"));
+        helper.deployPrimeOptional(addrs, address(xvs), config, _primeBytecode());
+    }
+
+    function test_DeployPrimeOptional_RevertsIfVaultProxyBytecodeEmpty() public {
+        EndureDeployHelper.PrimeBytecode memory bytecode = _primeBytecode();
+        bytecode.xvsVaultProxyCreationCode = "";
+
+        vm.expectRevert(bytes("empty vault proxy code"));
+        helper.deployPrimeOptional(addrs, address(xvs), _defaultPrimeConfig(), bytecode);
+    }
+
     function _defaultPrimeConfig() internal view returns (EndureDeployHelper.PrimeConfig memory) {
         address[] memory markets = new address[](1);
         markets[0] = addrs.vWTAO;
@@ -68,6 +132,7 @@ contract PrimeOptionalTest is Test {
             maximumXVSCap: 100000e18,
             xvsVaultPoolId: 0,
             xvsVaultRewardPerBlock: 1e18,
+            xvsVaultRewardFundingAmount: 1000e18,
             xvsVaultLockPeriod: 300,
             alphaNumerator: 1,
             alphaDenominator: 2,
@@ -105,4 +170,6 @@ interface IPrimeMarket {
 
 interface IXVSVaultPrime {
     function primeToken() external view returns (address);
+
+    function deposit(address rewardToken, uint256 pid, uint256 amount) external;
 }

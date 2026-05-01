@@ -45,7 +45,17 @@ contract DeployWithOptionals is Script {
 
         vm.stopBroadcast();
 
-        _writeAddresses(addr, xvs, vaiAddresses, liquidatorAddresses, primeAddresses, enableVAI, enableLiquidator, enablePrime);
+        _writeAddresses(
+            addr,
+            xvs,
+            vaiAddresses,
+            liquidatorAddresses,
+            primeAddresses,
+            enableXVS,
+            enableVAI,
+            enableLiquidator,
+            enablePrime
+        );
     }
 
     function _enableXVSRewards(
@@ -128,6 +138,7 @@ contract DeployWithOptionals is Script {
             maximumXVSCap: vm.envOr("PRIME_MAXIMUM_XVS_CAP", uint256(100000e18)),
             xvsVaultPoolId: vm.envOr("PRIME_XVS_VAULT_POOL_ID", uint256(0)),
             xvsVaultRewardPerBlock: vm.envOr("PRIME_XVS_VAULT_REWARD_PER_BLOCK", uint256(1e18)),
+            xvsVaultRewardFundingAmount: vm.envOr("PRIME_XVS_VAULT_REWARD_FUNDING_AMOUNT", uint256(1000e18)),
             xvsVaultLockPeriod: vm.envOr("PRIME_XVS_VAULT_LOCK_PERIOD", uint256(300)),
             alphaNumerator: uint128(vm.envOr("PRIME_ALPHA_NUMERATOR", uint256(1))),
             alphaDenominator: uint128(vm.envOr("PRIME_ALPHA_DENOMINATOR", uint256(2))),
@@ -138,6 +149,11 @@ contract DeployWithOptionals is Script {
             supplyMultipliers: supplyMultipliers,
             borrowMultipliers: borrowMultipliers
         });
+
+        if (config.xvsVaultRewardFundingAmount != 0) {
+            MockXVS(xvs).mint(msg.sender, config.xvsVaultRewardFundingAmount);
+            MockXVS(xvs).approve(address(helper), config.xvsVaultRewardFundingAmount);
+        }
 
         EndureDeployHelper.PrimeBytecode memory bytecode = EndureDeployHelper.PrimeBytecode({
             xvsVaultProxyCreationCode: vm.getCode("../contracts/out/XVSVaultProxy.sol/XVSVaultProxy.0.5.16.json"),
@@ -154,6 +170,7 @@ contract DeployWithOptionals is Script {
         EndureDeployHelper.VAIAddresses memory vaiAddresses,
         EndureDeployHelper.LiquidatorAddresses memory liquidatorAddresses,
         EndureDeployHelper.PrimeAddresses memory primeAddresses,
+        bool enableXVS,
         bool enableVAI,
         bool enableLiquidator,
         bool enablePrime
@@ -190,6 +207,7 @@ contract DeployWithOptionals is Script {
         vm.serializeAddress(json, "xvsVault", primeAddresses.xvsVault);
         vm.serializeAddress(json, "xvsVaultImplementation", primeAddresses.xvsVaultImplementation);
         vm.serializeAddress(json, "xvsStore", primeAddresses.xvsStore);
+        vm.serializeBool(json, "enableXVS", enableXVS);
         vm.serializeBool(json, "enableVAI", enableVAI);
         vm.serializeBool(json, "enableLiquidator", enableLiquidator);
         string memory finalJson = vm.serializeBool(json, "enablePrime", enablePrime);

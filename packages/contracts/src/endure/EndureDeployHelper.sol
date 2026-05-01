@@ -103,6 +103,7 @@ contract EndureDeployHelper {
         uint256 maximumXVSCap;
         uint256 xvsVaultPoolId;
         uint256 xvsVaultRewardPerBlock;
+        uint256 xvsVaultRewardFundingAmount;
         uint256 xvsVaultLockPeriod;
         uint128 alphaNumerator;
         uint128 alphaDenominator;
@@ -443,6 +444,12 @@ contract EndureDeployHelper {
             abi.encodeWithSignature("add(address,uint256,address,uint256,uint256)", xvsToken, uint256(100), xvsToken, config.xvsVaultRewardPerBlock, config.xvsVaultLockPeriod),
             "add vault pool"
         );
+        if (config.xvsVaultRewardFundingAmount != 0) {
+            require(
+                IERC20(xvsToken).transferFrom(msg.sender, xvsStore, config.xvsVaultRewardFundingAmount),
+                "fund XVS store failed"
+            );
+        }
     }
 
     function _deployPrimeLiquidityProvider(
@@ -521,6 +528,9 @@ contract EndureDeployHelper {
     ) internal {
         Prime livePrime = Prime(payable(primeAddrs.prime));
         PrimeLiquidityProvider(payable(primeAddrs.primeLiquidityProvider)).setPrimeToken(primeAddrs.prime);
+        PrimeLiquidityProvider(payable(primeAddrs.primeLiquidityProvider)).initializeTokens(
+            _primeMarketUnderlyingTokens(config.primeMarkets)
+        );
         _call(
             primeAddrs.xvsVault,
             abi.encodeWithSignature("setPrimeToken(address,address,uint256)", primeAddrs.prime, xvsToken, config.xvsVaultPoolId),
@@ -533,6 +543,32 @@ contract EndureDeployHelper {
         }
         require(SetterFacet(addrs.unitroller)._setPrimeToken(IPrime(primeAddrs.prime)) == 0, "set comptroller prime");
         livePrime.togglePause();
+    }
+
+    function _primeMarketUnderlyingTokens(address[] memory primeMarkets) internal view returns (address[] memory tokens) {
+        address[] memory uniqueTokens = new address[](primeMarkets.length);
+        uint256 uniqueTokenCount;
+
+        for (uint256 i; i < primeMarkets.length; i++) {
+            address token = _readAddress(primeMarkets[i], "underlying()");
+            bool seen;
+            for (uint256 j; j < uniqueTokenCount; j++) {
+                if (uniqueTokens[j] == token) {
+                    seen = true;
+                    break;
+                }
+            }
+
+            if (!seen) {
+                uniqueTokens[uniqueTokenCount] = token;
+                uniqueTokenCount++;
+            }
+        }
+
+        tokens = new address[](uniqueTokenCount);
+        for (uint256 i; i < uniqueTokenCount; i++) {
+            tokens[i] = uniqueTokens[i];
+        }
     }
 
     function _readAddress(address target, string memory signature) internal view returns (address value) {
