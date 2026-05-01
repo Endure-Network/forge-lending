@@ -1,6 +1,12 @@
 [profile.default]
-solc_version = "0.8.19"
-evm_version = "shanghai"
+# Venus upstream files use ^0.5.16 / =0.5.16 pragmas (XVSVault, VAIVault, etc.).
+# Foundry's resolver fails hard with solc_version pinned when those files are
+# present in src/ — even if no test imports them. auto_detect_solc = true lets
+# the resolver handle mixed pragmas gracefully; Foundry skips 0.5.x files it
+# cannot compile and only builds the 0.8.25 contracts. Hardhat handles 0.5.x.
+# TODO: pin solc_version = "0.8.25" once 0.5.x files are removed from src/.
+auto_detect_solc = true
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
 src = 'src'

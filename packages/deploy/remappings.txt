@@ -1,5 +1,12 @@
 @endure/contracts/=../contracts/src/
 @forge-std/=../contracts/lib/forge-std/src/
 @openzeppelin-contracts/=../contracts/lib/openzeppelin-contracts/
+@openzeppelin/contracts/=../contracts/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=../contracts/lib/openzeppelin-contracts-upgradeable/contracts/
 @protocol/=../contracts/src/
 @test/=../contracts/test/
+@venusprotocol/governance-contracts/=../contracts/lib/venusprotocol-governance-contracts/
+@venusprotocol/oracle/=../contracts/lib/venusprotocol-oracle/
+@venusprotocol/protocol-reserve/=../contracts/lib/venusprotocol-protocol-reserve/
+@venusprotocol/solidity-utilities/=../contracts/lib/venusprotocol-solidity-utilities/
+@venusprotocol/token-bridge/=../contracts/lib/venusprotocol-token-bridge/

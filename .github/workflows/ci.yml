@@ -2,7 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'phase-*'
+      - 'feat/**'
+      - 'fix/**'
+      - 'ci/**'
   pull_request:
     branches: [main]
 
@@ -22,12 +27,22 @@ jobs:
           version: stable
       - name: Forge version
         run: forge --version
+      - name: Cache Foundry build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/contracts/out
+            packages/contracts/cache
+          key: foundry-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml', 'packages/contracts/remappings.txt', 'packages/contracts/src/**/*.sol', 'packages/contracts/lib/**/*.sol', 'packages/contracts/test/**/*.sol') }}
+          restore-keys: |
+            foundry-${{ runner.os }}-
       - name: Build contracts
         run: forge build --root packages/contracts
 
   contracts-test:
     name: forge test + gas snapshot
     runs-on: ubuntu-latest
+    needs: [contracts-build]
     steps:
       - uses: actions/checkout@v6
       - name: Install Foundry
@@ -36,6 +51,17 @@ jobs:
           version: stable
       - name: Forge version
         run: forge --version
+      - name: Cache Foundry build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/contracts/out
+            packages/contracts/cache
+          key: foundry-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml', 'packages/contracts/remappings.txt', 'packages/contracts/src/**/*.sol', 'packages/contracts/lib/**/*.sol', 'packages/contracts/test/**/*.sol') }}
+          restore-keys: |
+            foundry-${{ runner.os }}-
+      - name: Check behavior-mapping table covers all deletions
+        run: bash scripts/check-test-mapping.sh
       - name: Run all Foundry tests (unit + integration + invariant)
         run: forge test --root packages/contracts -v
       - name: Gas snapshot regression check
@@ -54,51 +80,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Read pinned upstream SHA
-        id: sha
-        run: echo "UPSTREAM_SHA=$(cat packages/contracts/.upstream-sha)" >> "$GITHUB_OUTPUT"
-      - name: Clone upstream at pinned commit
-        run: |
-          git clone --filter=blob:none https://github.com/moonwell-fi/moonwell-contracts-v2.git /tmp/upstream
-          cd /tmp/upstream
-          git checkout ${{ steps.sha.outputs.UPSTREAM_SHA }}
-      - name: Compare every kept .sol against upstream
-        run: |
-          set -e
-          LOCAL=$GITHUB_WORKSPACE/packages/contracts
-          # Documented deviations from FORK_MANIFEST.md section 5.
-          # Any file listed here MAY diverge from upstream; any file NOT listed here MUST NOT.
-          DOCUMENTED_DEVIATIONS=("src/rewards/MultiRewardDistributor.sol")
-          is_documented() {
-            local f=$1
-            for d in "${DOCUMENTED_DEVIATIONS[@]}"; do
-              [ "$f" = "$d" ] && return 0
-            done
-            return 1
-          }
-          DIVERGED=0
-          MATCH=0
-          DOCUMENTED=0
-          while IFS= read -r f; do
-            REL=${f#$LOCAL/}
-            # Skip Endure-authored files (intentional additions, tracked in FORK_MANIFEST.md section 3)
-            if [[ "$REL" == src/endure/* ]]; then continue; fi
-            if [ -f "/tmp/upstream/$REL" ]; then
-              UP=$(sha256sum "/tmp/upstream/$REL" | awk '{print $1}')
-              LO=$(sha256sum "$f" | awk '{print $1}')
-              if [ "$UP" = "$LO" ]; then
-                MATCH=$((MATCH+1))
-              elif is_documented "$REL"; then
-                DOCUMENTED=$((DOCUMENTED+1))
-                echo "::warning file=$REL::documented Stance B deviation (see FORK_MANIFEST.md section 5)"
-              else
-                DIVERGED=$((DIVERGED+1))
-                echo "::error file=$REL::UNDOCUMENTED Stance B violation - add to FORK_MANIFEST.md section 5 or revert the change"
-              fi
-            fi
-          done < <(find "$LOCAL/src" -name "*.sol" -type f | sort)
-          echo "Stance B: byte-identical=$MATCH documented-deviations=$DOCUMENTED undocumented-diverged=$DIVERGED"
-          if [ "$DIVERGED" -ne 0 ]; then exit 1; fi
+      - name: Compare vendored src/ against upstream contracts/
+        run: bash scripts/check-stance-b.sh
 
   e2e-smoke:
     name: live-chain E2E (anvil)
@@ -110,9 +93,20 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: stable
+      - name: Cache Foundry build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            packages/contracts/out
+            packages/contracts/cache
+            packages/deploy/out
+            packages/deploy/cache
+          key: foundry-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml', 'packages/contracts/remappings.txt', 'packages/deploy/foundry.toml', 'packages/deploy/remappings.txt', 'packages/contracts/src/**/*.sol', 'packages/contracts/lib/**/*.sol', 'packages/deploy/src/**/*.sol') }}
+          restore-keys: |
+            foundry-${{ runner.os }}-
       - name: Start anvil in background
         run: |
-          anvil --silent > /tmp/anvil.log 2>&1 &
+          anvil --silent --disable-code-size-limit --gas-limit 999999999 > /tmp/anvil.log 2>&1 &
           for i in {1..10}; do
             if curl -s -X POST http://localhost:8545 \
                  -H "Content-Type: application/json" \
@@ -130,22 +124,114 @@ jobs:
           forge script src/DeployLocal.s.sol \
             --rpc-url http://localhost:8545 \
             --broadcast \
+            --code-size-limit 999999 \
             --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
       - name: Run E2E smoke test
         run: ./scripts/e2e-smoke.sh
+
+  contracts-hardhat-build:
+    name: hardhat compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Hardhat compile
+        run: pnpm --filter @endure/contracts hardhat compile
+
+  contracts-hardhat-test:
+    name: hardhat test
+    runs-on: ubuntu-latest
+    needs: [contracts-hardhat-build]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Link hardhat libs
+        run: bash packages/contracts/scripts/link-hardhat-libs.sh
+      - name: Run Hardhat tests
+        run: pnpm --filter @endure/contracts hardhat test
+      - name: Check skip-list drift
+        run: bash scripts/check-hardhat-skips.sh
 
   pnpm-workspace:
     name: pnpm workspace (non-contracts)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile
       - name: Run workspace tests
         run: pnpm -r test
+
+  e2e-smoke-hardhat:
+    name: live-chain E2E (hardhat)
+    runs-on: ubuntu-latest
+    needs: [contracts-hardhat-build]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Link hardhat libs
+        run: bash packages/contracts/scripts/link-hardhat-libs.sh
+      - name: Hardhat compile
+        run: pnpm --filter @endure/contracts hardhat compile
+      - name: Start hardhat node in background
+        run: |
+          cd packages/contracts
+          nohup pnpm hardhat node --hostname 127.0.0.1 --port 8545 > /tmp/hh-node.log 2>&1 &
+          for i in {1..30}; do
+            if curl -s -X POST http://localhost:8545 \
+                 -H "Content-Type: application/json" \
+                 --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+                 | grep -q '"result"'; then
+              echo "hardhat node up"
+              break
+            fi
+            sleep 1
+          done
+      - name: Verify clean boot (no HH604, no auto-run)
+        run: |
+          if grep -E "HH604|MODULE_NOT_FOUND|UnhandledRejection|ERROR processing skip func" /tmp/hh-node.log; then
+            echo "Hardhat node boot leaked errors"
+            exit 1
+          fi
+          if grep -E "deploying|Running deploy script|deploy/[0-9]+-" /tmp/hh-node.log; then
+            echo "hardhat-deploy auto-run unexpectedly executed"
+            exit 1
+          fi
+      - name: Deploy via scripts/deploy-local.ts
+        run: pnpm --filter @endure/contracts hardhat run scripts/deploy-local.ts --network localhost
+      - name: Smoke via scripts/smoke-local.ts
+        run: pnpm --filter @endure/contracts hardhat run scripts/smoke-local.ts --network localhost
+      - name: Tear down hardhat node
+        if: always()
+        run: pkill -f "hardhat node" || true

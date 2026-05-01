@@ -3,18 +3,24 @@
 ## Scope
 
 This repository hosts the Endure Network protocol — a lending protocol forked
-from Moonwell v2 for deployment on Bittensor EVM. Phase 0 (current) is local
-Anvil only; no mainnet or testnet deployment has occurred and no user funds
-are at risk.
+from Venus Protocol Core Pool, pinned at upstream commit
+`6400a067114a101bd3bebfca2a4bd06480e84831` (tag `v10.2.0-dev.5`), BSD-3-Clause
+licensed. Phase 0 (current) is local Anvil only; no mainnet or testnet
+deployment has occurred and no user funds are at risk.
 
 Security-relevant surfaces during Phase 0:
 
-- **Fork discipline (Stance B)**: kept Moonwell source files must remain
+- **Fork discipline (Stance B)**: kept Venus source files must remain
   byte-identical to pinned upstream commit
-  `8d5fb1107babf7935cfabc2f6ecdb1722547f085`. Any deviation is a fork-hygiene
+  `6400a067114a101bd3bebfca2a4bd06480e84831`. Any deviation is a fork-hygiene
   issue.
+- **Venus architecture components**: Diamond proxy via Unitroller, facets
+  (MarketFacet, PolicyFacet, SetterFacet, RewardFacet), AccessControlManager,
+  and VBep20Immutable markets.
 - **Endure-authored code** in `packages/contracts/src/endure/`, deploy scripts,
   and helper contracts.
+- **Phase 0 surfaces**: vWTAO (borrowable, CF/LT=0%), vAlpha30/vAlpha64
+  (collateral-only, CF=25%/LT=35%, borrow blocked).
 - **Build and deploy pipeline** (`foundry.toml`, `DeployLocal.s.sol`,
   `scripts/*.sh`).
 
@@ -53,10 +59,10 @@ Please include:
 Formal SLAs, bounty terms, and responsible-disclosure timelines will be
 published before any mainnet deployment (Phase 4).
 
-## Handling of Upstream Moonwell Vulnerabilities
+## Handling of Upstream Venus Vulnerabilities
 
 Endure is forked at a pinned commit. If a vulnerability is disclosed against
-upstream `moonwell-fi/moonwell-contracts-v2`:
+upstream `VenusProtocol/venus-protocol`:
 
 1. Maintainers evaluate whether the affected file is kept in the Endure fork
    (see `packages/contracts/FORK_MANIFEST.md` § 4).
@@ -74,7 +80,7 @@ The following are explicitly out of scope for security reports:
 - Third-party dependency issues where an upstream fix exists and we have not
   yet adopted it (please file a regular issue or PR instead).
 - Theoretical gas-griefing where impact is negligible.
-- Test-only mocks (`MockAlpha30/64`, `MockPriceOracle`, `WTAO`) — these are
+- Test-only mocks (`MockAlpha30/64`, `MockResilientOracle`, `WTAO`) — these are
   not production code.
 
 ## Credit

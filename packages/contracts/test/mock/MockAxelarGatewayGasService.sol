@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 // FILEPATH: test/mock/MockAxelarGatewayGasService.sol
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 
 contract MockAxelarGatewayGasService {
     function payNativeGasForContractCall(

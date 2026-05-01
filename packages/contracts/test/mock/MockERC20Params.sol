@@ -1,7 +1,7 @@
-pragma solidity 0.8.19;
+pragma solidity 0.8.25;
 
-import "@openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockERC20Params is ERC20, ERC20Burnable {
     string private _newSymbol;

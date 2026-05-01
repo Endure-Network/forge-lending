@@ -5,6 +5,28 @@
     "build": "forge build",
     "test": "echo '@endure/contracts: run forge test directly; see CI contracts-test job' && exit 0",
     "test:forge": "forge test",
-    "snapshot": "forge snapshot"
+    "snapshot": "forge snapshot",
+    "hardhat": "hardhat",
+    "postinstall": "bash scripts/link-hardhat-libs.sh"
+  },
+  "devDependencies": {
+    "@defi-wonderland/smock": "^2.3.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@openzeppelin/hardhat-upgrades": "^1.28.0",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@typechain/hardhat": "^6.1.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "bignumber.js": "^9.0.0",
+    "chai": "^4.3.10",
+    "ethers": "^5.7.0",
+    "hardhat": "^2.19.0",
+    "hardhat-deploy": "^0.11.45",
+    "ts-node": "^10.9.0",
+    "typechain": "^8.0.0",
+    "typescript": "^5.3.0"
   }
 }

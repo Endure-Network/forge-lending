@@ -1,116 +1,144 @@
 # Endure Fork Manifest
 
-Audit trail of every divergence from `moonwell-fi/moonwell-contracts-v2` at pinned commit `8d5fb1107babf7935cfabc2f6ecdb1722547f085`.
+This manifest tracks every divergence from upstream sources. The protocol uses Venus Protocol Core Pool as its chassis.
 
-## 1. Deleted Files (Strip Manifest)
-- `src/governance/TemporalGovernor.sol` — cross-chain governance; Endure is single-chain
-- `src/governance/ITemporalGovernor.sol`
-- `src/governance/WormholeTrustedSender.sol`, `IWormholeTrustedSender.sol`
-- `src/governance/multichain/*` — Wormhole-relayed governance
-- `src/governance/Well.sol` — WELL governance token
-- `src/wormhole/*` — Wormhole primitives
-- `src/stkWell/*` — WELL staking safety module
-- `src/IStakedWell.sol`
-- `src/xWELL/*` — cross-chain WELL
-- `src/rewards/MultiRewardsDeploy.sol` — deploy scaffolding for stripped rewards pipeline
-- (NOTE: `MultiRewardDistributor.sol`, `IMultiRewardDistributor.sol`, and `MultiRewardDistributorCommon.sol` are intentionally KEPT, not stripped; `ComptrollerStorage.sol` imports them for storage layout. They remain byte-identical to upstream — see section 4.)
-- `src/morpho/*` — Morpho integrations
-- `src/tokensale/*` — WELL vesting
-- `src/views/MorphoViews*.sol`, `MorphoBlueInterface.sol`, `MetaMorphoInterface.sol`
-- `src/views/MoonwellViewsV2.sol`, `MoonwellViewsV3.sol`, `ProposalView.sol` — cascade deletions (imported stripped contracts)
-- `src/4626/MoonwellERC4626.sol` — cascade deletion
-- `src/oracles/ChainlinkOEVMorphoWrapper.sol` — cascade deletion (imported morpho)
-- `proposals/mips/mip-b00/*`
-- Test files for all of the above (see strip manifest in plan)
-- Script files for all of the above
+## 1. Upstream
+- **Repository**: `VenusProtocol/venus-protocol`
+- **Pinned Commit**: `6400a067114a101bd3bebfca2a4bd06480e84831`
+- **Tag**: `v10.2.0-dev.5`
 
-## 2. Modified Files (Stance B exceptions)
-| File | Modified By Task | Change Scope | Rationale |
-|------|------------------|--------------|-----------|
-| `packages/contracts/test/helper/BaseTest.t.sol` | Task 13 | Import prunes + deletion of setup methods referencing stripped contracts | Test helper was tightly coupled to stripped governance |
-| `packages/contracts/foundry.toml` | Task 12 | evm_version cancun→shanghai; optimizer_runs 1→200; remove RPC endpoints; add [invariant] profile | Endure-specific build target |
-| `packages/contracts/remappings.txt` | Task 12 | Remove @wormhole/, @proposals/. Keep @forge-std/, @openzeppelin/, @protocol/, @test/, @utils/, @script/ | Wormhole stripped |
+## 2. Vendored Files (Stance B)
+All files under `src/` (excluding `src/endure/`) are byte-identical to the upstream repository at the pinned commit. Every file under `src/` must hash-match the corresponding file at `<venus>/contracts/<same-relative-path>`.
 
-## 3. Added Files (Endure-authored)
-| File | Added By Task | Purpose |
-|------|---------------|---------|
-| `src/endure/MockAlpha30.sol` | 15 | Phase 0 test alpha ERC20 (netuid 30) |
-| `src/endure/MockAlpha64.sol` | 15 | Phase 0 test alpha ERC20 (netuid 64) |
-| `src/endure/WTAO.sol` | 16 | Phase 0 mock Wrapped TAO |
-| `src/endure/MockPriceOracle.sol` | 17 | Admin-set price oracle for Phase 0 |
-| `src/endure/EndureRoles.sol` | 18 | Struct library bundling 4 role addresses (NOT a multisig) |
-| `src/endure/EnduRateModelParams.sol` | 19 | Endure IRM + market param constants |
-| `test/endure/**` | 15-24 | Endure test suites |
-| `test/helper/EndureDeployHelper.sol` | 18 | Dual-mode (broadcast + test-only prank) deploy helper |
-| `packages/deploy/src/DeployLocal.s.sol` | 20 | Phase 0 local Anvil deploy script |
+## 3. Endure-authored Files
+Located in `src/endure/`:
+- `AllowAllAccessControlManager.sol`
+- `DenyAllAccessControlManager.sol`
+- `EnduRateModelParams.sol`
+- `EndureRoles.sol`
+- `MockAlpha30.sol`
+- `MockAlpha64.sol`
+- `MockResilientOracle.sol`
+- `MockXVS.sol`
+- `WTAO.sol`
 
-## 4. Unchanged Files (Kept Core — ZERO diff vs upstream)
-Every file under `packages/contracts/src/` NOT listed in sections 1-3 is byte-identical to upstream.
+## 4. Test Infrastructure (Steady State)
 
-Explicit list:
-- `Comptroller.sol`, `Unitroller.sol`, `ComptrollerStorage.sol`, `ComptrollerInterface.sol`
-- `MToken.sol`, `MTokenInterfaces.sol`, `MErc20.sol`, `MErc20Delegate.sol`, `MErc20Delegator.sol`, `MLikeDelegate.sol`
-- `MWethDelegate.sol`, `MWethOwnerWrapper.sol`, `WethUnwrapper.sol`
-- `irm/JumpRateModel.sol`, `irm/InterestRateModel.sol`, `irm/WhitePaperInterestRateModel.sol`
-- `oracles/ChainlinkOracle.sol`, `oracles/ChainlinkCompositeOracle.sol`, `oracles/PriceOracle.sol`, `oracles/AggregatorV3Interface.sol`, `oracles/StaticPriceFeed.sol`
-- `Exponential.sol`, `ExponentialNoError.sol`, `SafeMath.sol`, `CarefulMath.sol`, `TokenErrorReporter.sol`
-- `EIP20Interface.sol`, `EIP20NonStandardInterface.sol`
-- `router/WETHRouter.sol`, `router/IWETH.sol`
-- `Recovery.sol`, `OEVProtocolFeeRedeemer.sol`
-- `4626/` (except deleted MoonwellERC4626.sol), `cypher/`, `market/`, `views/MoonwellViewsV1*.sol`
-- `rewards/IMultiRewardDistributor.sol`, `rewards/MultiRewardDistributorCommon.sol` — kept byte-identical (required by `ComptrollerStorage.sol` storage layout)
-- `rewards/MultiRewardDistributor.sol` — kept with documented import-path deviation; see section 5.1 below
+### 4.1 Vendored Helpers (Byte-identical)
+The following TypeScript helpers were vendored from Venus `6400a067` into `packages/contracts/` to support the dual-toolchain test suite and deploy pipeline. All are byte-identical to upstream (sha256-verified):
 
-## 5. Unresolved Deviations
+| Endure path | Upstream path |
+|---|---|
+| `helpers/chains.ts` | `helpers/chains.ts` |
+| `helpers/deploymentConfig.ts` | `helpers/deploymentConfig.ts` |
+| `helpers/utils.ts` | `helpers/utils.ts` |
+| `helpers/markets/types.ts` | `helpers/markets/types.ts` |
+| `helpers/markets/index.ts` | `helpers/markets/index.ts` |
+| `helpers/markets/hardhat.ts` | `helpers/markets/hardhat.ts` |
+| `helpers/markets/bscmainnet.ts` | `helpers/markets/bscmainnet.ts` |
+| `helpers/markets/bsctestnet.ts` | `helpers/markets/bsctestnet.ts` |
+| `helpers/tokens/index.ts` | `helpers/tokens/index.ts` |
+| `helpers/tokens/types.ts` | `helpers/tokens/types.ts` |
+| `helpers/tokens/hardhat.ts` | `helpers/tokens/hardhat.ts` |
+| `helpers/tokens/bscmainnet.ts` | `helpers/tokens/bscmainnet.ts` |
+| `helpers/tokens/bsctestnet.ts` | `helpers/tokens/bsctestnet.ts` |
+| `helpers/tokens/common/indexBySymbol.ts` | `helpers/tokens/common/indexBySymbol.ts` |
+| `helpers/rateModelHelpers.ts` | `helpers/rateModelHelpers.ts` |
+| `helpers/writeFile.ts` | `helpers/writeFile.ts` |
+| `script/deploy/comptroller/diamond.ts` | `script/deploy/comptroller/diamond.ts` |
 
-### 5.1 `src/rewards/MultiRewardDistributor.sol` — five import paths rewritten
+The `helpers/markets/{bscmainnet,bsctestnet}.ts` and `helpers/tokens/{bscmainnet,bsctestnet}.ts` files contain BSC-specific configurations that Endure does not deploy; they are vendored for byte-identity, not for use.
 
-**Status**: Documented deviation (not byte-identical to upstream).
+### 4.3 Hardhat-deploy chain (intentionally not auto-run)
+The vendored Venus deploy scripts at `packages/contracts/deploy/*.ts` are byte-identical Venus content. By default, the `hardhat-deploy` plugin runs them automatically when `pnpm hardhat node` starts. Under Endure's vendoring scope, this auto-run is **disabled** (see §7) because the vendored deploy chain has 3 distinct module-load gaps:
 
-**Change**: Five import statements rewritten from `@protocol/*` to relative (`../*`) paths:
+1. **`deploy/005-deploy-VTreasuryV8.ts` and `deploy/009-configure-vaults.ts`** import 14 chain-specific JSONs from `@venusprotocol/governance-contracts/deployments/`. Endure's vendored `governance-contracts` package (see §6) ships only the `contracts/` subtree of the upstream npm package; the `deployments/` subtree (~1.9 MB of address registries for chains Endure does not deploy on) is not vendored.
+2. **`deploy/006-deploy-psm.ts`** imports `@venusprotocol/oracle/dist/deploy/1-deploy-oracles`. The upstream npm package ships compiled `dist/` content; the GitHub source repo (the only source we can pin to via SHA for Stance B) does not contain `dist/`. Vendoring the source `deploy/1-deploy-oracles.ts` would require its transitive imports (`oracle/helpers/deploymentConfig.ts`, ~47 KB) which itself imports `@venusprotocol/venus-protocol/deployments/{bscmainnet,bsctestnet}.json` (~10 MB of upstream production registries — meta-vendoring the chassis itself, since Endure IS the venus-protocol fork).
+3. **`deploy/007-deploy-VBNBAdmin.ts`** imports `@venusprotocol/protocol-reserve/dist/deploy/000-psr` with a similar (smaller) cascade.
 
-```diff
--import {MToken} from "@protocol/MToken.sol";
--import {Comptroller} from "@protocol/Comptroller.sol";
--import {MTokenInterface} from "@protocol/MTokenInterfaces.sol";
--import {ExponentialNoError} from "@protocol/ExponentialNoError.sol";
--import {MultiRewardDistributorCommon} from "@protocol/rewards/MultiRewardDistributorCommon.sol";
-+import {MToken} from "../MToken.sol";
-+import {Comptroller} from "../Comptroller.sol";
-+import {MTokenInterface} from "../MTokenInterfaces.sol";
-+import {ExponentialNoError} from "../ExponentialNoError.sol";
-+import {MultiRewardDistributorCommon} from "./MultiRewardDistributorCommon.sol";
+The total transitive surface to make Venus's deploy chain runnable on a fresh `hardhat` node is at least ~12 MB of upstream production state, much of it unrelated to Endure's audited surface. We declined this scope as misaligned with Endure's goals (we do not deploy on those chains, and the value is evidence-only — the canonical local-deploy path is `EndureDeployHelper`-based, see below).
+
+**Endure's local Hardhat deploy path** (canonical for Hardhat-side dev work, frontend integration):
+```
+pnpm hardhat node                                                            # one terminal
+cd packages/contracts && pnpm hardhat run scripts/deploy-local.ts --network localhost
+cd packages/contracts && pnpm hardhat run scripts/smoke-local.ts  --network localhost
 ```
 
-**Why**: The `packages/deploy/` forge package consumes the contracts source through
-`allow_paths = ["../contracts"]` and its own remappings. When this file uses
-`@protocol/*` imports (upstream style), Solidity resolves the same transitive
-contracts (`MToken`, `MTokenInterfaces`, `ExponentialNoError`) through two
-paths — once via `./rewards/...` from `ComptrollerStorage.sol` and once via
-`@protocol/...` from this file — producing `Identifier already declared (2333)`
-errors in the deploy package's compilation context.
+**Foundry deploy path** (canonical for Foundry-side dev work, lives in `packages/deploy/`):
+```
+anvil --silent --disable-code-size-limit --gas-limit 1000000000 &
+cd packages/deploy && forge script src/DeployLocal.s.sol --rpc-url http://localhost:8545 --broadcast --slow --legacy --code-size-limit 999999
+bash scripts/e2e-smoke.sh
+```
 
-The contracts package itself compiles cleanly with `@protocol/*` imports
-(only one remapping active). The deploy package cannot, without deeper
-remapping gymnastics that would break other `@protocol/*` consumers.
+Both paths produce `packages/deploy/addresses.json` with the same 16-key alphabetized schema and exercise the same `EndureDeployHelper.deployAll()` Solidity logic (the helper lives at `src/endure/EndureDeployHelper.sol` and is the single source of truth for the Endure chassis deploy). Downstream tooling (frontend, integration tests, keepers) is toolchain-agnostic.
 
-**Semantic equivalence**: The rewritten imports point to the same files via
-different paths. No logic, types, or bytecode difference. `forge test` green
-in both compilation contexts. We verified against upstream commit 8d5fb11 that
-the remaining 1,244 lines of the file are byte-identical.
+Note: `scripts/e2e-smoke.sh` is foundry-tool-based (uses `cast`) and targets Anvil. Running it against `hardhat node` fails on `cast`-vs-Hardhat-EDR JSON-RPC strictness (cast 1.2.2 sends both `input` and `data` fields, which Hardhat 2.28+ rejects per spec). The Hardhat-native `scripts/smoke-local.ts` covers the same supply/borrow/repay/redeem/liquidation flow via ethers and is the canonical Hardhat-side smoke.
 
-**Restoration path**: Any future refactor that unifies remapping resolution
-across packages (e.g., a single top-level `remappings.txt` that both packages
-consume via a shared `allow_paths`, or publishing contracts as a git
-submodule) would let us restore byte-identical imports. Not pursued in
-Phase 0 because the cost/benefit is wrong: we'd touch the build system to fix
-a five-line cosmetic issue in a file we never deploy.
+### 4.2 Vendored Solidity Helpers (Byte-identical)
+All files in `src/test-helpers/venus/` (excluding those listed in §5.3) are byte-identical to their upstream counterparts in the Venus `contracts/test-helpers/` or `test/` directories.
 
-**Runtime impact**: None. `MultiRewardDistributor` is not deployed by
-`DeployLocal.s.sol`. The file exists only because `ComptrollerStorage.sol`
-imports it for storage layout, and `ComptrollerStorage` is kept as a Stance B
-exception. Reward distribution is out of scope for Phase 0.
+## 5. Documented Deviations
 
-**Upstream backport policy**: If upstream Moonwell ships a security fix to
-this file, re-apply the five import rewrites after backporting. The diff is
-minimal and mechanical. Checked: `git show upstream/main -- src/rewards/MultiRewardDistributor.sol`.
+### 5.1 Import Path Patches (Solidity)
+The following 7 files were re-vendored from Venus upstream with single-line import path patches to resolve under Endure's layout (pointing `../../` to the remapped `src/` root):
+
+| File | Patched Imports |
+|------|-----------------|
+| `src/test-helpers/venus/ComptrollerHarness.sol` | `./ComptrollerMock.sol`, `../../Comptroller/Unitroller.sol` |
+| `src/test-helpers/venus/ComptrollerMock.sol` | `../../Comptroller/Diamond/facets/*Facet.sol`, `../../Comptroller/Unitroller.sol` |
+| `src/test-helpers/venus/ComptrollerScenario.sol` | `./ComptrollerMock.sol` |
+| `src/test-helpers/venus/VBep20Harness.sol` | `../../Tokens/VTokens/*.sol`, `./ComptrollerScenario.sol` |
+| `src/test-helpers/venus/VRTConverterHarness.sol` | `../../Tokens/VRT/VRTConverter.sol` |
+| `src/test-helpers/venus/VRTVaultHarness.sol` | `../../VRTVault/VRTVault.sol` |
+| `src/test-helpers/venus/XVSVestingHarness.sol` | `../../Tokens/XVS/XVSVesting.sol` |
+
+### 5.2 Hardhat Test Patches (TypeScript)
+Endure maintains 26 specific string rewrites across 12 Hardhat test files to support the `AccessControlManagerMock` FQN resolution. These patches ensure that `hardhat-deploy` and `smock` can locate vendored test mocks without requiring `module-alias` hacks.
+
+## 6. lib/ Packages (External Dependencies)
+The following 5 `@venusprotocol/*` packages are vendored byte-identical under `lib/venusprotocol-*/`.
+
+| Package | Version | Git repo | Commit SHA |
+|---------|---------|----------|------------|
+| `lib/venusprotocol-governance-contracts/` | `2.13.0` | `VenusProtocol/governance-contracts` | `f8d3efe9578c8cd11330181bb4396f6b449e654c` |
+| `lib/venusprotocol-oracle/` | `2.10.0` | `VenusProtocol/oracle` | `c4bd1d95b5989c8f8938812471ab715df77c6b1e` |
+| `lib/venusprotocol-protocol-reserve/` | `3.4.0` | `VenusProtocol/protocol-reserve` | `80c53be90a70d9d4704efa33876dc77c0f48f8b2` |
+| `lib/venusprotocol-solidity-utilities/` | `2.1.0` | `VenusProtocol/solidity-utilities` | `d891bec6e60338132994560b9d47f2865ee33e0d` |
+| `lib/venusprotocol-token-bridge/` | `2.7.0` | `VenusProtocol/token-bridge` | `845a6fa27a0fde98ce6ad621f2340b247d23c866` |
+
+## 7. Toolchain Divergence
+Endure deliberately diverges from the Venus toolchain to maintain a leaner dependency profile and avoid global remappings that obscure contract provenance.
+
+### 7.1 Dependency Versions
+| Tool | Venus Version | Endure Version | Impact |
+|------|---------------|----------------|--------|
+| `hardhat` | `^2.14.0` | `^2.19.0` | None (Backward compatible) |
+| `@nomiclabs/hardhat-ethers` | `^2.2.3` | `^2.2.3` | Identical |
+| `@defi-wonderland/smock` | `^2.3.4` | `^2.3.0` | Minor API surface differences in spy wrapping |
+
+### 7.2 Behavioral Deviations
+- **No `module-alias`**: Venus uses `module-alias` to point `hardhat-ethers` to `hardhat-deploy-ethers`. Endure uses standard peer dependencies. This requires explicit `ethers.getContractFactory` calls in scenarios where Venus relies on implicit aliasing.
+- **Typechain Resolution**: Endure resolves Typechain targets from `./typechain-types` directly, whereas Venus often uses remapped `typechain/` paths. This is reflected in the 26 patches documented in §5.2.
+- **`hardhat-deploy` auto-run on `hardhat node` disabled**: Per-network `deploy: []` override in `hardhat.config.ts` for both the in-process `hardhat` network and the `localhost` network, suppressing the plugin's default behavior of executing every script in `deploy/` on node startup. The vendored Venus `deploy/*.ts` chain has 3 module-load gaps under Endure's vendoring scope (see §4.3); vendoring upstream's full transitive surface (~12 MB of production state) was rejected as scope-misaligned. Endure provides `packages/contracts/scripts/deploy-local.ts` as the on-demand replacement. No vendored Venus content was modified.
+
+### 7.3 Legacy Hardhat Parity Blocker
+The Venus parity optionals work captured a bounded baseline for the remaining Section B skips in `.sisyphus/evidence/venus-parity-optionals/hardhat-baseline.md`. With exclusions active, `bash scripts/check-hardhat-skips.sh` exits 0 and `pnpm --filter @endure/contracts hardhat test` exits 0 with 463 passing tests. Temporarily removing only the remediation-target exclusions reproduced the documented W5/W6/W7/W11/W12 failures.
+
+Three tooling-alignment attempts were tested and then reverted because none produced a safe, minimal path to restore those legacy suites in this branch:
+
+1. Adding Venus-style `module-alias` + `hardhat-deploy-ethers` aliasing and pinning `@defi-wonderland/smock` to `2.4.0` compiled successfully, but W5 still reported duplicate smock calls.
+2. Pinning the broader Venus runtime (`hardhat 2.22.18`, `ethers 5.7.2`, `@openzeppelin/hardhat-upgrades 1.21.0`, `@nomicfoundation/hardhat-network-helpers 1.0.10`, TypeChain pins) was not cleanly reproducible under this fork: TypeScript 4.7 cannot parse Endure's current `satisfies` syntax, and keeping TypeScript 5.x left W5/W11 duplicate-call failures unchanged.
+3. Forcing `@openzeppelin/upgrades-core 1.21.0` changed W6 from the modern missing-initializer validation failure into an older validator crash (`Cannot read properties of undefined (reading 'msg')`) and made W5 fail earlier during proxy validation.
+
+An upstream comparison confirmed the W5 Liquidator Solidity and test files are byte-identical to Venus `6400a067` except for expected import-path layout patches. The blocker is therefore a legacy Hardhat runtime/harness compatibility issue, not Venus source drift.
+
+The current execution path keeps W5/W6/W7/W11/W12 documented as deferred Section B skips and proceeds with optional-module deployment/configuration surfaces independently. If full legacy Hardhat parity becomes mandatory later, it should be handled as a dedicated compatibility track that first reproduces the exact upstream Venus lockfile/runtime, then evaluates minimal documented test-helper-only shims if the duplicate-call and validator behavior remains.
+
+## 8. Stance B Audit Posture
+To verify byte-identity and audit parity:
+1. Identify the file in `src/` (excluding `src/endure/`).
+2. Locate the corresponding file in the `VenusProtocol/venus-protocol` repository at commit `6400a067`.
+3. Compute the SHA-256 hash of both files.
+4. Parity is confirmed if hashes match, or if the deviation is explicitly listed in §5.1.
