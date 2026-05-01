@@ -9,6 +9,7 @@ import {MarketFacet} from "@protocol/Comptroller/Diamond/facets/MarketFacet.sol"
 import {MockAlpha30} from "@protocol/endure/MockAlpha30.sol";
 import {MockResilientOracle} from "@protocol/endure/MockResilientOracle.sol";
 import {VBep20Immutable} from "@protocol/Tokens/VTokens/VBep20Immutable.sol";
+import {VAIControllerInterface} from "@protocol/Tokens/VAI/VAIControllerInterface.sol";
 import {WTAO} from "@protocol/endure/WTAO.sol";
 
 contract LiquidatorOptionalTest is Test {
@@ -62,6 +63,21 @@ contract LiquidatorOptionalTest is Test {
         assertEq(Liquidator(payable(liquidatorAddrs.liquidator)).minLiquidatableVAI(), 0, "min VAI");
     }
 
+    function test_DeployLiquidatorOptional_RevertsIfVAINotDeployed() public {
+        EndureDeployHelper freshHelper = new EndureDeployHelper();
+        EndureDeployHelper.Addresses memory freshAddrs = freshHelper.deployAll();
+
+        vm.expectRevert(bytes("VAI required"));
+        freshHelper.deployLiquidatorOptional(freshAddrs, liquidatorConfig);
+    }
+
+    function test_DeployLiquidatorOptional_RevertsIfPendingRedeemChunkLengthZero() public {
+        liquidatorConfig.pendingRedeemChunkLength = 0;
+
+        vm.expectRevert(bytes("chunk length zero"));
+        helper.deployLiquidatorOptional(addrs, liquidatorConfig);
+    }
+
     function test_LiquidatorOptional_CanLiquidateVTokenBorrowAndSendTreasuryShareToReserve() public {
         liquidatorAddrs = helper.deployLiquidatorOptional(addrs, liquidatorConfig);
 
@@ -85,6 +101,69 @@ contract LiquidatorOptionalTest is Test {
 
         assertGt(vAlpha30.balanceOf(bob), 0, "bob seized collateral");
         assertGt(alpha30.balanceOf(liquidatorAddrs.protocolShareReserve), 0, "reserve got treasury share");
+    }
+
+    function test_LiquidatorOptional_CanLiquidateVAIDebtAndSendTreasuryShareToReserve() public {
+        liquidatorAddrs = helper.deployLiquidatorOptional(addrs, liquidatorConfig);
+        uint256 mintedVAI = 10e18;
+        uint256 repayAmount = 2e18;
+
+        vm.startPrank(alice);
+        assertEq(VAIControllerInterface(vaiAddrs.vaiController).mintVAI(mintedVAI), 0, "mint VAI");
+        IVAIForLiquidator(vaiAddrs.vai).transfer(bob, repayAmount);
+        vm.stopPrank();
+
+        oracle.setUnderlyingPrice(addrs.vAlpha30, 0.1e18);
+
+        uint256 debtBefore = VAIControllerInterface(vaiAddrs.vaiController).getVAIRepayAmount(alice);
+        uint256 bobCollateralBefore = vAlpha30.balanceOf(bob);
+
+        vm.startPrank(bob);
+        IVAIForLiquidator(vaiAddrs.vai).approve(liquidatorAddrs.liquidator, repayAmount);
+        Liquidator(payable(liquidatorAddrs.liquidator)).liquidateBorrow(
+            vaiAddrs.vaiController,
+            alice,
+            repayAmount,
+            IVToken(addrs.vAlpha30)
+        );
+        vm.stopPrank();
+
+        uint256 debtAfter = VAIControllerInterface(vaiAddrs.vaiController).getVAIRepayAmount(alice);
+        assertLt(debtAfter, debtBefore, "VAI debt reduced");
+        assertGt(vAlpha30.balanceOf(bob), bobCollateralBefore, "bob seized collateral");
+        assertGt(alpha30.balanceOf(liquidatorAddrs.protocolShareReserve), 0, "reserve got treasury share");
+    }
+
+    function test_LiquidatorOptional_RevertsNonVAILiquidationWhenForceVAIRequiresHighDebt() public {
+        liquidatorAddrs = helper.deployLiquidatorOptional(addrs, liquidatorConfig);
+
+        vm.prank(alice);
+        assertEq(VAIControllerInterface(vaiAddrs.vaiController).mintVAI(10e18), 0, "mint VAI");
+
+        Liquidator liquidator = Liquidator(payable(liquidatorAddrs.liquidator));
+        liquidator.resumeForceVAILiquidate();
+        liquidator.setMinLiquidatableVAI(5e18);
+
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSelector(Liquidator.VAIDebtTooHigh.selector, 10e18, 5e18));
+        liquidator.liquidateBorrow(addrs.vWTAO, alice, 1e18, IVToken(addrs.vAlpha30));
+    }
+
+    function test_LiquidatorOptional_PauseResumeForceVAILiquidateUpdatesStateAndGuardsDuplicates() public {
+        liquidatorAddrs = helper.deployLiquidatorOptional(addrs, liquidatorConfig);
+
+        Liquidator liquidator = Liquidator(payable(liquidatorAddrs.liquidator));
+        assertFalse(liquidator.forceVAILiquidate(), "initially paused");
+        vm.expectRevert(bytes("Force Liquidation of VAI is already Paused"));
+        liquidator.pauseForceVAILiquidate();
+
+        liquidator.resumeForceVAILiquidate();
+        assertTrue(liquidator.forceVAILiquidate(), "resumed");
+        vm.expectRevert(bytes("Force Liquidation of VAI is already resumed"));
+        liquidator.resumeForceVAILiquidate();
+
+        liquidator.pauseForceVAILiquidate();
+        assertFalse(liquidator.forceVAILiquidate(), "paused");
     }
 
     function _supplyBorrowSetup() internal {
@@ -121,8 +200,15 @@ contract LiquidatorOptionalTest is Test {
     function _vaiCreationCode() internal view returns (bytes memory) {
         return abi.encodePacked(vm.getCode("VAI.sol:VAI"), abi.encode(block.chainid));
     }
+
 }
 
 interface IComptrollerLiquidator {
     function liquidatorContract() external view returns (address);
+}
+
+interface IVAIForLiquidator {
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    function transfer(address to, uint256 amount) external returns (bool);
 }
