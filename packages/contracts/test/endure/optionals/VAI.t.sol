@@ -43,6 +43,18 @@ contract VAIOptionalTest is Test {
         assertEq(IVAI(vaiAddrs.vai).wards(vaiAddrs.vaiController), 1, "controller auth");
     }
 
+    function test_DeployVAIOptional_RevertsIfReceiverZero() public {
+        config.receiver = address(0);
+
+        vm.expectRevert(bytes("receiver zero"));
+        helper.deployVAIOptional(addrs, config, _vaiCreationCode());
+    }
+
+    function test_DeployVAIOptional_RevertsIfVAICodeEmpty() public {
+        vm.expectRevert(bytes("empty VAI code"));
+        helper.deployVAIOptional(addrs, config, "");
+    }
+
     function test_MintVAI_RevertsWithoutCollateral() public {
         vaiAddrs = helper.deployVAIOptional(addrs, config, _vaiCreationCode());
 
