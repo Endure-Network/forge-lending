@@ -16,6 +16,7 @@ contract DeployWithOptionals is Script {
         bool enableVAI = vm.envOr("ENABLE_VAI", false);
         bool enableLiquidator = vm.envOr("ENABLE_LIQUIDATOR", false);
         bool enablePrime = vm.envOr("ENABLE_PRIME", false);
+        enableXVS = enableXVS || enablePrime;
 
         vm.startBroadcast(pk);
 
@@ -23,7 +24,7 @@ contract DeployWithOptionals is Script {
         EndureDeployHelper.Addresses memory addr = helper.deployAll();
 
         address xvs;
-        if (enableXVS || enablePrime) {
+        if (enableXVS) {
             xvs = _enableXVSRewards(helper, addr, deployer);
         }
 
